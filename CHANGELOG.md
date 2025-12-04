@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.0] - 2024-12-04
+
+### Added
+- Comprehensive docstrings for `navigation_system.py` classes and methods
+- `Transformation3D` class with full 3D rotation matrix support (yaw, pitch, roll)
+- `Location3D` class for IMU-based position tracking with dead reckoning
+- Gravity compensation in position tracking
+- First-iteration handling to prevent acceleration spikes
+
+### Changed
+- All `Transformation3D` methods now use `**kwargs` for consistent API
+- Improved code formatting and readability in navigation system
+- Enhanced rotation matrix generation with proper ZYX convention
+
+### Fixed
+- IMU no longer auto-instantiates when not provided
+- Proper null checks for IMU sensor in update methods
+
+---
+
 ## [0.3.0] - 2024-12-04
 
 ### Added
