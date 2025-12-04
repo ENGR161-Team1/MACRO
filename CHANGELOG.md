@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] - 2024-12-04
+
 ### Added
 - Build HAT communication and motion control system
 - Motor control and serial interface modules for Build HAT
@@ -17,18 +21,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Line finder module for line detection
 - Mobility system module
 - Color sensor support via Build HAT
+- CHANGELOG.md for version tracking
+- Improved README with repository structure documentation
+- POC directory documentation
+- Testing branch with `tests/` directory structure
+- Documentation branch with `docs/` directory structure
 
 ### Changed
 - Reorganized basehat modules from `modules/basehat/` to `basehat/`
 - Reorganized buildhat modules from `modules/buildhat/` to `buildhat/`
+- Fixed project name in pyproject.toml (MACRO → MARCO)
 
 ### Removed
 - Deprecated `motion_control.py` module (functionality moved to `mobility_system.py`)
 - Removed `thermal_system.py` (thermal system not needed for robot design)
+- Deleted `hatModules` branch (merged and obsolete)
 
 ---
 
-## [0.1.0] - 2024-11-XX (Initial Development)
+## [0.1.0] - 2024-10-15
 
 ### Added
 - Initial project structure
