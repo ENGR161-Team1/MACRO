@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Removed
 - Deprecated `motion_control.py` module (functionality moved to `mobility_system.py`)
+- Removed `thermal_system.py` (thermal system not needed for robot design)
 
 ---
 
@@ -34,7 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Basic sensor input class in `sensors.py`
 - Navigation system foundation
 - Task manager system
-- Thermal system module
 - Proof of concept files for motor control testing
 - Project configuration via `pyproject.toml`
 
@@ -57,9 +57,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 | Branch | Purpose | Status |
 |--------|---------|--------|
 | `main` | Production-ready code | Active |
-| `mobility` | Mobility system development | Merged to main |
+| `mobility` | Mobility system development | Active |
 | `navigation` | Navigation system development | Active |
-| `hatModules` | HAT module development | Merged to main |
+| `testing` | Test files and test development | Active |
+| `documentation` | Documentation updates | Active |
 | `IMU-test` | IMU sensor testing | Active |
 | `poc1` | Proof of Concept 1 | Archived |
 | `poc2` | Proof of Concept 2 | Archived |
