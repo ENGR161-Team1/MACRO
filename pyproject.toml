@@ -1,5 +1,6 @@
 [project]
-name = "MACRO"
+name = "MARCO"
+version = "0.2.0"
 requires-python = ">= 3.10.0"
 description = "This is the code for a prototype demo Mars Cargo Rover (MARCO)"
 readme = "README.md"
