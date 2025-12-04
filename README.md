@@ -1,4 +1,4 @@
-# Mars Cargo Rover (MARCO)
+# Mars Autonomous Cargo Rover Operations (MACRO)
 
 **By Karley Hammond, Advay Chandra, Samuel Razor, and Katherine Hampton**
 
@@ -9,7 +9,7 @@ This is the code for the third design project for Purdue's Engineering 161 Class
 ## Repository Structure
 
 ```
-MARCO/
+MACRO/
 ├── main.py                 # Main entry point
 ├── mobility_test.py        # Mobility system testing
 ├── pyproject.toml          # Project configuration
