@@ -1,6 +1,6 @@
 # Proof of Concepts (POC)
 
-This directory contains experimental code and proof-of-concept implementations used during MARCO development.
+This directory contains experimental code and proof-of-concept implementations used during MACRO development.
 
 ## Contents
 

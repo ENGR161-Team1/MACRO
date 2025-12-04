@@ -1,10 +1,30 @@
 # Changelog
 
-All notable changes to the MARCO (Mars Cargo Rover) project will be documented in this file.
+All notable changes to the MACRO (Mars Autonomous Cargo Rover Operations) project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+---
+
+## [0.3.0] - 2024-12-04
+
+### Added
+- `basehat/__init__.py` for clean module imports
+- `systems/__init__.py` for clean module imports
+- Location class in `navigation_system.py` for position tracking
+
+### Changed
+- **Project renamed from MARCO to MACRO** (Mars Autonomous Cargo Rover Operations)
+- Consolidated branch structure: merged `mobility`, `navigation`, `IMU-test` branches
+- Standardized basehat file naming to snake_case
+- Renamed `UltrasonicSensor.py` → `ultrasonic_sensor.py`
+- Fixed import paths across all modules
+
+### Removed
+- Removed duplicate `HallSensor.py` (keeping `hall_sensor.py`)
+- Deleted obsolete branches: `mobility`, `navigation`, `IMU-test`, `hatModules`
 
 ---
 
@@ -30,7 +50,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Reorganized basehat modules from `modules/basehat/` to `basehat/`
 - Reorganized buildhat modules from `modules/buildhat/` to `buildhat/`
-- Fixed project name in pyproject.toml (MACRO → MARCO)
 
 ### Removed
 - Deprecated `motion_control.py` module (functionality moved to `mobility_system.py`)
