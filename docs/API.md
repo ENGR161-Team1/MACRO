@@ -55,9 +55,52 @@ tracker = Location3D(
 
 | Method | Description |
 |--------|-------------|
+| `get_position()` | Get current position as tuple (x, y, z) |
 | `update_orientation(**kwargs)` | Update orientation from gyroscope (dt) |
 | `update_position(**kwargs)` | Update position from accelerometer (dt, display) |
-| `run_continuous_update(**kwargs)` | Continuous update loop (update_interval) |
+
+---
+
+#### Navigation3D
+
+3D navigation system with logging capabilities. Extends Location3D.
+
+```python
+from systems import Navigation3D
+from basehat import IMUSensor
+
+imu = IMUSensor()
+navigator = Navigation3D(
+    imu=imu,
+    position=[0.0, 0.0, 0.0],
+    orientation=[0.0, 0.0, 0.0],
+    mode="degrees"
+)
+```
+
+**Attributes:**
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `log` | list | List of logged navigation state entries |
+| `start_time` | float | Timestamp when navigation started |
+| *Inherits all attributes from Location3D* | | |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `log_state(timestamp)` | Log current state (position, velocity, acceleration, orientation) |
+| `print_state(timestamp)` | Print current state as formatted tuples |
+| `run_continuous_update(**kwargs)` | Continuous update loop with optional logging/printing |
+
+**run_continuous_update kwargs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `update_interval` | float | 0.1 | Update interval in seconds |
+| `log_state` | bool | True | Whether to log state each iteration |
+| `print_state` | bool | False | Whether to print state each iteration |
 
 ---
 

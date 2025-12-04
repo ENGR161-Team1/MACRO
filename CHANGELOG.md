@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.2] - 2024-12-04
+
+### Added
+- `Transformation3D` export in `systems/__init__.py`
+- `get_position()` method in `Location3D` returning position as tuple
+
+---
+
 ## [0.5.1] - 2024-12-04
 
 ### Added
