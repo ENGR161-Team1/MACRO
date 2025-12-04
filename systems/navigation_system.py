@@ -1,4 +1,4 @@
-"""
+"""                                                                                                                                                
 navigation_system.py
 
 3D Navigation and Position Tracking System for MACRO.
@@ -6,10 +6,12 @@ navigation_system.py
 This module provides:
 - Transformation3D: 3D rotation and translation utilities using Euler angles
 - Location3D: Position tracking using IMU sensor data with dead reckoning
+- Navigation3D: Extended position tracking with timestamped logging
 
 Classes:
     Transformation3D: Handles 3D coordinate transformations (rotation/translation)
     Location3D: Tracks position, velocity, and orientation using IMU integration
+    Navigation3D: Extends Location3D with continuous update loop and logging
 """
 
 import asyncio
@@ -233,29 +235,75 @@ class Location3D:
             print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
         
         return True
+
+
+class Navigation3D(Location3D):
+    """
+    3D navigation system with logging capabilities.
+    
+    Extends Location3D to add timestamped logging of position, velocity,
+    orientation, and acceleration data.
+    
+    Args:
+        Inherits all arguments from Location3D
+    
+    Attributes:
+        log: List of logged navigation data entries
+        start_time: Timestamp when navigation started
+    """
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.log = []
+        self.start_time = None
+    
+    def _log_state(self, timestamp):
+        """
+        Log the current navigation state with timestamp.
+        
+        Args:
+            timestamp (float): Current timestamp in seconds since start
+        """
+        entry = {
+            "timestamp": timestamp,
+            "position": self.pos.copy(),
+            "velocity": self.velocity.copy(),
+            "acceleration": self.acceleration.copy(),
+            "orientation": self.orientation.copy()
+        }
+        self.log.append(entry)
     
     async def run_continuous_update(self, **kwargs):
         """
-        Continuously update position at a fixed interval.
+        Continuously update position at a fixed interval with logging.
         
         Args:
             update_interval (float): Update interval in seconds (default: 0.1)
         """
+        import time
+        
         update_interval = kwargs.get("update_interval", 0.1)
+        self.start_time = time.time()
+        
         while True:
             await self.update_position(dt=update_interval)
+            
+            # Log current state with timestamp
+            timestamp = time.time() - self.start_time
+            self._log_state(timestamp)
+            
             await asyncio.sleep(update_interval)
 
 
 if __name__ == "__main__":
     # Example usage
     imu_sensor = IMUSensor()
-    location_tracker = Location3D(imu=imu_sensor, mode="degrees")
+    navigator = Navigation3D(imu=imu_sensor, mode="degrees")
     
     async def main():
-        await location_tracker.run_continuous_update(update_interval=0.1)
+        await navigator.run_continuous_update(update_interval=0.1)
     
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Stopping location tracking.")
+        print(f"Stopping navigation. Logged {len(navigator.log)} entries.")
