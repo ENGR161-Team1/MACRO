@@ -1,13 +1,18 @@
 import asyncio
 from buildhat import Motor, ColorSensor
-from basehat import UltrasonicSensor, LineFinder
+from basehat import UltrasonicSensor
+# TODO: LineFinder class not yet implemented in basehat/line_finder.py
+# from basehat import LineFinder
 
 front_motor = Motor("A")
 turn_motor = Motor("B")
 color_sensor = ColorSensor("D")
 ultrasonic_sensor = UltrasonicSensor(26)
-lf_left = LineFinder(16)
-lf_right = LineFinder(5)
+# TODO: Uncomment when LineFinder is implemented
+# lf_left = LineFinder(16)
+# lf_right = LineFinder(5)
+lf_left = None
+lf_right = None
 slowdown_distance = 30.0  # cm
 stopping_distance = 15.0  # cm
 forward_speed = 20

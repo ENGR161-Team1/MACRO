@@ -65,11 +65,9 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and recent changes.
 ### Branches
 
 - `main` - Stable, production-ready code
-- `mobility` - Mobility system development
-- `navigation` - Navigation system development
+- `systems` - Unified systems development (mobility, navigation, sensors)
 - `testing` - Test files and development
 - `documentation` - Documentation updates
-- `IMU-test` - IMU sensor testing and calibration
 
 ## License
 
