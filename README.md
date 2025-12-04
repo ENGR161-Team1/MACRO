@@ -37,8 +37,7 @@ MARCO/
 │   ├── mobility_system.py  # Movement and motor control
 │   ├── navigation_system.py# Path planning and navigation
 │   ├── sensors.py          # Sensor input abstraction
-│   ├── task_manager.py     # Task scheduling
-│   └── thermal_system.py   # Temperature monitoring
+│   └── task_manager.py     # Task scheduling
 │
 └── poc/                    # Proof of Concept experiments
     ├── poc_example.py      # Navigation POC with PID control
@@ -67,7 +66,9 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and recent changes.
 
 - `main` - Stable, production-ready code
 - `mobility` - Mobility system development
-- `navigation` - Navigation system development  
+- `navigation` - Navigation system development
+- `testing` - Test files and development
+- `documentation` - Documentation updates
 - `IMU-test` - IMU sensor testing and calibration
 
 ## License
