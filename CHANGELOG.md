@@ -8,6 +8,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.1] - 2024-12-04
+
+### Added
+- `CONTRIBUTING.md` with contribution guidelines
+- `docs/API.md` with module and class reference documentation
+- `docs/HARDWARE.md` with hardware setup guide
+- `poc/poc1.py` line following motor control demonstration
+- `poc/poc_2.py` additional POC from poc2 branch
+
+### Changed
+- Renamed `poc/proof_of_concept.py` to `poc/poc1.py`
+- Merged and deleted `poc1` and `poc2` branches into main
+- Updated `docs/README.md` with complete documentation links
+- Updated `poc/README.md` to reflect current POC contents
+- Updated version to 0.4.1 in `pyproject.toml`
+
+### Removed
+- `poc/LineFinder.py` (moved to basehat module)
+
+---
+
+## [0.4.0] - 2024-12-04
+
+### Added
+- Comprehensive docstrings for `navigation_system.py` classes and methods
+- `Transformation3D` class with full 3D rotation matrix support (yaw, pitch, roll)
+- `Location3D` class for IMU-based position tracking with dead reckoning
+- Gravity compensation in position tracking
+- First-iteration handling to prevent acceleration spikes
+
+### Changed
+- All `Transformation3D` methods now use `**kwargs` for consistent API
+- Improved code formatting and readability in navigation system
+- Enhanced rotation matrix generation with proper ZYX convention
+
+### Fixed
+- IMU no longer auto-instantiates when not provided
+- Proper null checks for IMU sensor in update methods
+
+---
+
 ## [0.3.0] - 2024-12-04
 
 ### Added
