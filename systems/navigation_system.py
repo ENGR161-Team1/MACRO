@@ -257,7 +257,7 @@ class Navigation3D(Location3D):
         self.log = []
         self.start_time = None
     
-    def _log_state(self, timestamp):
+    def log_state(self, timestamp):
         """
         Log the current navigation state with timestamp.
         
@@ -273,24 +273,49 @@ class Navigation3D(Location3D):
         }
         self.log.append(entry)
     
+    def print_state(self, timestamp):
+        """
+        Print the current navigation state with timestamp.
+        
+        Args:
+            timestamp (float): Current timestamp in seconds since start
+        """
+        position = tuple(self.pos)
+        velocity = tuple(self.velocity)
+        acceleration = tuple(self.acceleration)
+        orientation = tuple(self.orientation)
+        print(f"[{timestamp:.3f}s] Pos: {position}, Vel: {velocity}, "
+              f"Acc: {acceleration}, Orient: {orientation}")
+    
     async def run_continuous_update(self, **kwargs):
         """
-        Continuously update position at a fixed interval with logging.
+        Continuously update position at a fixed interval with optional logging and printing.
         
         Args:
             update_interval (float): Update interval in seconds (default: 0.1)
+            log_state (bool): Whether to log state each iteration (default: True)
+            print_state (bool): Whether to print state each iteration (default: False)
         """
         import time
         
         update_interval = kwargs.get("update_interval", 0.1)
+        log_state_enabled = kwargs.get("log_state", True)
+        print_state_enabled = kwargs.get("print_state", False)
         self.start_time = time.time()
         
         while True:
             await self.update_position(dt=update_interval)
             
-            # Log current state with timestamp
+            # Get current timestamp
             timestamp = time.time() - self.start_time
-            self._log_state(timestamp)
+            
+            # Log current state if enabled
+            if log_state_enabled:
+                self.log_state(timestamp)
+            
+            # Print current state if enabled
+            if print_state_enabled:
+                self.print_state(timestamp)
             
             await asyncio.sleep(update_interval)
 
@@ -301,7 +326,11 @@ if __name__ == "__main__":
     navigator = Navigation3D(imu=imu_sensor, mode="degrees")
     
     async def main():
-        await navigator.run_continuous_update(update_interval=0.1)
+        await navigator.run_continuous_update(
+            update_interval=0.1,
+            log_state=True,
+            print_state=True
+        )
     
     try:
         asyncio.run(main())

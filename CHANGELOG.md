@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.1] - 2024-12-04
+
+### Added
+- `log_state` kwarg for `Navigation3D.run_continuous_update()` (default: True)
+- `print_state` kwarg for `Navigation3D.run_continuous_update()` (default: False)
+- `print_state()` method for formatted state output
+- `log_state()` method (renamed from private)
+
+---
+
 ## [0.5.0] - 2024-12-04
 
 ### Added
