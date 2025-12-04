@@ -1,8 +1,10 @@
 import numpy as np
 import sys
 import time
-from ..modules.basehat.imu_sensor import IMUSensor
 import math
+from basehat import IMUSensor
+from systems.mobility_system import MotionController
+
 
 class Location:
     def __init__(self, x: float, y: float, imu: IMUSensor):
@@ -12,7 +14,7 @@ class Location:
         self.l_rear = 0.0  # distance to rear axle
         self.l_front = 0.0  # distance to front axle
         self.imu = imu
-        self.coord_log = ([[x, y], self.t])  # log of coordinates and time
+        self.coord_log = ([[x, y], self.t0])  # log of coordinates and time
         self.imu_log = []  # log of IMU readings
     
     def convert_to_polar(self, x: float, y: float):
@@ -37,5 +39,3 @@ class Location:
 
         # Adjust acceleration for vehicle geometry
         ax = ax_mes + math.radians(xy_gyro) * self.l_rear
-
-    

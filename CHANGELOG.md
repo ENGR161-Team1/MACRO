@@ -68,10 +68,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 | Branch | Purpose | Status |
 |--------|---------|--------|
 | `main` | Production-ready code | Active |
-| `mobility` | Mobility system development | Active |
-| `navigation` | Navigation system development | Active |
+| `systems` | Unified systems development (mobility, navigation, sensors) | Active |
 | `testing` | Test files and test development | Active |
 | `documentation` | Documentation updates | Active |
-| `IMU-test` | IMU sensor testing | Active |
 | `poc1` | Proof of Concept 1 | Archived |
 | `poc2` | Proof of Concept 2 | Archived |
