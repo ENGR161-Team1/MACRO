@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.1] - 2024-12-04
+
+### Added
+- `CONTRIBUTING.md` with contribution guidelines
+- `docs/API.md` with module and class reference documentation
+- `docs/HARDWARE.md` with hardware setup guide
+- `poc/LineFinder.py` official ENGR 16X sensor driver
+- Enhanced `poc/proof_of_concept.py` with line following implementation
+
+### Changed
+- Updated `docs/README.md` with complete documentation links
+- Updated `poc/README.md` to reflect current POC contents
+
+---
+
 ## [0.4.0] - 2024-12-04
 
 ### Added

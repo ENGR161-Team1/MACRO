@@ -4,20 +4,21 @@ This directory contains experimental code and proof-of-concept implementations u
 
 ## Contents
 
-### `proof_of_concept.py`
-**Purpose**: Basic motor control demonstration  
-**Status**: Complete  
-**Description**: Simple test to verify Build HAT motor pair initialization and timed movement control.
+### `LineFinder.py`
+**Purpose**: Grove Line Finder sensor driver  
+**Status**: Complete (ENGR 16X Teaching Team)  
+**Description**: Official driver for the Grove Line Finder sensor. Provides:
+- Digital black/white surface detection
+- `value` property (0 for black, 1 for white)
+- `line_detected` property (True/False for line detection)
 
-### `poc_example.py`  
-**Purpose**: Navigation system POC with PID line following  
-**Status**: Reference implementation  
-**Description**: Comprehensive navigation implementation featuring:
-- PID-based steering control
-- Line sensor array handling
-- Gap detection and reacquisition
-- Curvature-constrained path following
-- Hardware abstraction layer (placeholder functions)
+### `proof_of_concept.py`
+**Purpose**: Line following motor control demonstration  
+**Status**: Complete  
+**Description**: Proof-of-concept for line following with motor control featuring:
+- LineFinder sensor integration
+- Alternating turn direction for line reacquisition
+- Motor pair control with Build HAT
 
 ## Usage
 
@@ -25,5 +26,5 @@ These files are for **testing and reference only**. Production code should use t
 
 ## Related Branches
 
-- `poc1` - Historical branch for initial motor control POC
-- `poc2` - Historical branch for line following development
+- `poc1` - Historical branch for line finder POC
+- `poc2` - Historical branch for additional testing
