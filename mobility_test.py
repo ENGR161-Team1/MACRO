@@ -1,13 +1,16 @@
 import asyncio
-from buildhat import Motor
-from basehat import UltrasonicSensor
+from buildhat import Motor, ColorSensor
+from basehat import UltrasonicSensor, LineFinder
 
-front_motor = Motor('A')
-turn_motor = Motor('B')
+front_motor = Motor("A")
+turn_motor = Motor("B")
+color_sensor = ColorSensor("D")
 ultrasonic_sensor = UltrasonicSensor(26)
+lf_left = LineFinder(16)
+lf_right = LineFinder(5)
 slowdown_distance = 30.0  # cm
 stopping_distance = 15.0  # cm
-forward_speed = 50
+forward_speed = 20
 forward_speed_slow = 10
 moving = True
 current_speed = forward_speed
@@ -18,7 +21,7 @@ async def start_safety_ring():
         try:
             dist = float(ultrasonic_sensor.getDist)
         except:
-            dist = 0
+            dist = 30.0
         # print(dist)
         if dist < stopping_distance:
             if moving:
