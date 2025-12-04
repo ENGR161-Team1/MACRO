@@ -1,4 +1,4 @@
-# MARCO core systems modules
+# MACRO core systems modules
 from .mobility_system import MotionController
 from .navigation_system import Location
 from .sensors import SensorInput

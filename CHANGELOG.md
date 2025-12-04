@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the MARCO (Mars Cargo Rover) project will be documented in this file.
+All notable changes to the MACRO (Mars Autonomous Cargo Rover Operations) project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -30,7 +30,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Reorganized basehat modules from `modules/basehat/` to `basehat/`
 - Reorganized buildhat modules from `modules/buildhat/` to `buildhat/`
-- Fixed project name in pyproject.toml (MACRO → MARCO)
 
 ### Removed
 - Deprecated `motion_control.py` module (functionality moved to `mobility_system.py`)
