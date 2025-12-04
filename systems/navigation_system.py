@@ -20,7 +20,7 @@ import math
 from basehat import IMUSensor
 
 # Gravity constant (m/s^2)
-GRAVITY = 9.81
+GRAVITY = 9.80235
 
 
 class Transformation3D:
@@ -149,10 +149,69 @@ class Location3D:
         self.d_orientation = np.array([0.0, 0.0, 0.0])  # Angular velocity
         self.a_orientation = np.array([0.0, 0.0, 0.0])  # Angular acceleration
         
+        # Calibration offsets (measured when stationary)
+        self.accel_bias = np.array([0.0, 0.0, 0.0])
+        self.gyro_bias = np.array([0.0, 0.0, 0.0])
+        self.calibrated = False
+        
+        # Velocity decay factor to reduce drift (0.0 = no decay, 1.0 = instant stop)
+        self.velocity_decay = kwargs.get("velocity_decay", 0.02)
+        
+        # Threshold for considering acceleration as noise (m/s^2)
+        self.accel_threshold = kwargs.get("accel_threshold", 0.1)
+        
         # Components
         self.transformer = Transformation3D(**kwargs)
         self.imu = kwargs.get("imu", None)
         self.initialized = False
+    
+    async def calibrate(self, **kwargs):
+        """
+        Calibrate the IMU by measuring bias while stationary.
+        
+        Call this method when the robot is completely still.
+        Takes multiple samples and averages them.
+        
+        Args:
+            samples (int): Number of samples to average (default: 50)
+            delay (float): Delay between samples in seconds (default: 0.02)
+        """
+        samples = kwargs.get("samples", 50)
+        delay = kwargs.get("delay", 0.02)
+        
+        if self.imu is None:
+            print("No IMU sensor provided.")
+            return False
+        
+        print("Calibrating IMU... Keep robot stationary.")
+        
+        accel_sum = np.array([0.0, 0.0, 0.0])
+        gyro_sum = np.array([0.0, 0.0, 0.0])
+        
+        for i in range(samples):
+            ax, ay, az = self.imu.getAccel()
+            gx, gy, gz = self.imu.getGyro()
+            
+            accel_sum += np.array([ax, ay, az])
+            gyro_sum += np.array([gz, gy, gx])  # yaw, pitch, roll order
+            
+            await asyncio.sleep(delay)
+        
+        # Average the readings
+        self.accel_bias = accel_sum / samples
+        self.gyro_bias = gyro_sum / samples
+        
+        # The Z acceleration bias should preserve gravity
+        # We want to measure what "zero" acceleration looks like in the local frame
+        # When stationary and level, accel should read (0, 0, ~9.81)
+        # So we store the full reading and subtract it later, then add back gravity in global frame
+        
+        self.calibrated = True
+        print(f"Calibration complete.")
+        print(f"  Accel bias: {self.accel_bias}")
+        print(f"  Gyro bias: {self.gyro_bias}")
+        
+        return True
     
     async def update_orientation(self, **kwargs):
         """
@@ -171,6 +230,10 @@ class Location3D:
         d_roll, d_pitch, d_yaw = self.imu.getGyro()
         new_d_orientation = np.array([d_yaw, d_pitch, d_roll])
         
+        # Subtract gyro bias if calibrated
+        if self.calibrated:
+            new_d_orientation -= self.gyro_bias
+        
         if not self.initialized:
             # First iteration: initialize rates without calculating acceleration
             self.d_orientation = new_d_orientation
@@ -188,6 +251,7 @@ class Location3D:
         Update position by integrating accelerometer data.
         
         Transforms local acceleration to global frame and subtracts gravity.
+        Applies calibration bias and noise thresholding.
         
         Args:
             dt (float): Time step in seconds
@@ -204,6 +268,33 @@ class Location3D:
         ax, ay, az = self.imu.getAccel()
         self.accel_local = np.array([ax, ay, az])
         
+        # Subtract calibration bias if calibrated
+        if self.calibrated:
+            self.accel_local -= self.accel_bias
+        
+        # Update orientation from gyroscope first (need current orientation for transform)
+        await self.update_orientation(dt=dt)
+        
+        # Transform local acceleration to global frame
+        accel_global = await self.transformer.rotate_vector(
+            vector=self.accel_local,
+            yaw=self.orientation[0],
+            pitch=self.orientation[1],
+            roll=self.orientation[2],
+            invert=True
+        )
+        
+        # If not calibrated, remove gravity (calibrated bias already includes gravity)
+        if not self.calibrated:
+            accel_global -= np.array([0.0, 0.0, GRAVITY])
+        
+        # Apply noise threshold - treat small accelerations as zero
+        for i in range(3):
+            if abs(accel_global[i]) < self.accel_threshold:
+                accel_global[i] = 0.0
+        
+        self.acceleration = accel_global
+        
         # Update position: p = p0 + v*dt + 0.5*a*dt^2
         self.pos = await self.transformer.translate_vector(
             vector=self.pos,
@@ -216,20 +307,14 @@ class Location3D:
             translation=self.acceleration * dt
         )
         
-        # Update orientation from gyroscope
-        await self.update_orientation(dt=dt)
+        # Apply velocity decay to reduce drift when acceleration is near zero
+        if np.linalg.norm(self.acceleration) < self.accel_threshold:
+            self.velocity *= (1.0 - self.velocity_decay)
         
-        # Transform local acceleration to global frame
-        self.acceleration = await self.transformer.rotate_vector(
-            vector=self.accel_local,
-            yaw=self.orientation[0],
-            pitch=self.orientation[1],
-            roll=self.orientation[2],
-            invert=True
-        )
+        if display:
+            print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
         
-        # Remove gravity component (assuming Z-up global frame)
-        self.acceleration -= np.array([0.0, 0.0, GRAVITY])
+        return True
         
         if display:
             print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
@@ -304,12 +389,21 @@ class Navigation3D(Location3D):
             update_interval (float): Update interval in seconds (default: 0.1)
             log_state (bool): Whether to log state each iteration (default: True)
             print_state (bool): Whether to print state each iteration (default: False)
+            calibrate (bool): Whether to calibrate IMU before starting (default: True)
+            calibration_samples (int): Number of calibration samples (default: 50)
         """
         import time
         
         update_interval = kwargs.get("update_interval", 0.1)
         log_state_enabled = kwargs.get("log_state", True)
         print_state_enabled = kwargs.get("print_state", False)
+        do_calibrate = kwargs.get("calibrate", True)
+        calibration_samples = kwargs.get("calibration_samples", 50)
+        
+        # Calibrate IMU if requested
+        if do_calibrate and not self.calibrated:
+            await self.calibrate(samples=calibration_samples)
+        
         self.start_time = time.time()
         
         while True:
@@ -338,7 +432,8 @@ if __name__ == "__main__":
         await navigator.run_continuous_update(
             update_interval=0.1,
             log_state=True,
-            print_state=True
+            print_state=True,
+            calibrate=True
         )
     
     try:
