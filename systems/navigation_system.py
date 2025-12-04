@@ -235,6 +235,15 @@ class Location3D:
             print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
         
         return True
+    
+    def get_position(self):
+        """
+        Get the current position as a tuple.
+        
+        Returns:
+            tuple: Current position (x, y, z) in meters
+        """
+        return tuple(self.pos)
 
 
 class Navigation3D(Location3D):
