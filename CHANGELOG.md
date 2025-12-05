@@ -8,6 +8,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.0] - 2024-12-04
+
+### Added
+- `NavigationDisplay` UI component for real-time rover visualization
+- 2D grid display with 1m major gridlines and 0.1m minor gridlines
+- Black dot + blue velocity arrow for rover position/heading
+- Info panel showing position, orientation, velocity, acceleration
+- Resizable window with adaptive canvas
+- `Navigation3D` integration via `run_continuous()` async loop
+- IMU calibration system with `calibrate()` method
+- `velocity_decay` parameter to reduce drift when stationary
+- `accel_threshold` parameter to filter sensor noise
+- `tests/navigation_test.py` - mobility + Navigation3D test
+- `tests/navigation_display_test.py` - mobility + Navigation3D + display test
+- `tests/__init__.py` for test package
+- `ui/__init__.py` module exports
+
+### Changed
+- Arrow direction now based on velocity vector (vx, vy) instead of yaw
+- Arrow length scales with speed
+- `run_continuous_update()` now auto-calibrates IMU on start
+- Acceleration is thresholded to filter noise
+- Velocity decays toward zero when acceleration is near zero
+
+### Fixed
+- IMU drift causing constant velocity accumulation when stationary
+- Gravity removal now uses calibrated bias instead of fixed offset
+- Orientation updated before acceleration transform
+
+---
+
 ## [0.5.2] - 2024-12-04
 
 ### Added

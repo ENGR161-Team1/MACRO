@@ -1,6 +1,6 @@
 [project]
 name = "MACRO"
-version = "0.5.2"
+version = "0.6.0"
 requires-python = ">= 3.10.0"
 description = "This is the code for a prototype demo Mars Autonomous Cargo Rover Operations (MACRO)"
 readme = "README.md"
