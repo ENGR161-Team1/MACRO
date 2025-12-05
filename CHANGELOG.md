@@ -8,6 +8,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.7.0] - 2024-12-05
+
+### Added
+- `update_state()` method in `Navigation3D` - unified update for position, orientation, and magnetic field
+- `get_magnetic_field()` async method returning magnetic field magnitude in micro-tesla
+- `magnetic_magnitude` attribute and `mag_baseline` calibration value
+- Magnetic field baseline calibration during `calibrate()`
+- Magnetism logging in `log_state()` with `magnetic_magnitude` field
+- Magnetism display in `print_state()` output
+
+### Changed
+- Separated orientation update from `update_position()` into `update_state()`
+- `run_continuous_update()` now calls `update_state()` instead of `update_position()`
+- Position and velocity rounded to 3 decimal places in `print_state()`
+- `get_magnetic_field()` is now async
+
+### Tests
+- Renamed `navigation_test.py` → `nav-mobility_test.py`
+- Renamed `navigation_test_exclusive.py` → `navigation_test.py`
+- Updated `navigation_test.py` to use async `get_magnetic_field()`
+
+---
+
 ## [0.6.1] - 2024-12-05
 
 ### Fixed
