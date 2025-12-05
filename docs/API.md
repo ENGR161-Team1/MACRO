@@ -38,7 +38,9 @@ tracker = Location3D(
     imu=imu,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
-    mode="degrees"
+    mode="degrees",
+    velocity_decay=0.02,      # Drift reduction when stationary
+    accel_threshold=0.1       # Noise filter threshold (m/s²)
 )
 ```
 
@@ -50,14 +52,25 @@ tracker = Location3D(
 | `velocity` | np.array | Current velocity [vx, vy, vz] in m/s |
 | `acceleration` | np.array | Global acceleration (gravity-compensated) |
 | `orientation` | np.array | Current orientation [yaw, pitch, roll] |
+| `calibrated` | bool | Whether IMU has been calibrated |
+| `accel_bias` | np.array | Calibrated acceleration bias |
+| `gyro_bias` | np.array | Calibrated gyroscope bias |
 
 **Methods:**
 
 | Method | Description |
 |--------|-------------|
 | `get_position()` | Get current position as tuple (x, y, z) |
+| `calibrate(**kwargs)` | Calibrate IMU bias while stationary |
 | `update_orientation(**kwargs)` | Update orientation from gyroscope (dt) |
 | `update_position(**kwargs)` | Update position from accelerometer (dt, display) |
+
+**calibrate kwargs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `samples` | int | 50 | Number of samples to average |
+| `delay` | float | 0.02 | Delay between samples in seconds |
 
 ---
 
@@ -74,7 +87,9 @@ navigator = Navigation3D(
     imu=imu,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
-    mode="degrees"
+    mode="degrees",
+    velocity_decay=0.02,
+    accel_threshold=0.1
 )
 ```
 
@@ -101,6 +116,79 @@ navigator = Navigation3D(
 | `update_interval` | float | 0.1 | Update interval in seconds |
 | `log_state` | bool | True | Whether to log state each iteration |
 | `print_state` | bool | False | Whether to print state each iteration |
+| `calibrate` | bool | True | Whether to calibrate IMU before starting |
+| `calibration_samples` | int | 50 | Number of calibration samples |
+
+---
+
+## UI Module
+
+### navigation_display.py
+
+#### NavigationDisplay
+
+Real-time visualization of rover position and navigation data.
+
+```python
+from ui import NavigationDisplay
+from systems import Navigation3D
+from basehat import IMUSensor
+
+imu = IMUSensor()
+navigator = Navigation3D(imu=imu)
+
+display = NavigationDisplay(
+    width=800,
+    height=800,
+    scale=50.0,           # pixels per meter
+    navigator=navigator
+)
+
+# Blocking run
+display.run()
+
+# Or async with Navigation3D
+async def main():
+    await display.run_continuous(update_interval=0.1)
+```
+
+**Constructor kwargs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `width` | int | 800 | Initial window width in pixels |
+| `height` | int | 800 | Initial window height in pixels |
+| `scale` | float | 50.0 | Pixels per meter |
+| `title` | str | "MACRO Navigation Display" | Window title |
+| `navigator` | Navigation3D | None | Navigation3D instance for data |
+
+**Display Features:**
+- 2D grid with 1m major gridlines (gray #404040) and 0.1m minor gridlines (gray #202020)
+- Black dot for rover position with blue velocity arrow
+- Arrow direction and length based on velocity vector
+- Info panel showing position, orientation, velocity, acceleration
+- Resizable window with adaptive canvas
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `start()` | Initialize display window (non-blocking) |
+| `run()` | Start display window (blocking) |
+| `run_continuous(**kwargs)` | Async loop with navigator updates |
+| `update(**kwargs)` | Update display with new data |
+| `update_from_navigator()` | Pull data from navigator instance |
+| `process_events()` | Process GUI events (call in main loop) |
+| `close()` | Close the display window |
+
+**update kwargs:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `position` | tuple | (x, y, z) position in meters |
+| `orientation` | tuple | (yaw, pitch, roll) in degrees |
+| `velocity` | tuple | (vx, vy, vz) in m/s |
+| `acceleration` | tuple | (ax, ay, az) in m/s² |
 
 ---
 
