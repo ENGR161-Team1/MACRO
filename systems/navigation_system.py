@@ -155,10 +155,17 @@ class Location3D:
         self.calibrated = False
         
         # Velocity decay factor to reduce drift (0.0 = no decay, 1.0 = instant stop)
-        self.velocity_decay = kwargs.get("velocity_decay", 0.02)
+        self.velocity_decay = kwargs.get("velocity_decay", 0.05)
         
         # Threshold for considering acceleration as noise (m/s^2)
-        self.accel_threshold = kwargs.get("accel_threshold", 0.1)
+        self.accel_threshold = kwargs.get("accel_threshold", 0.15)
+        
+        # ZUPT (Zero-Velocity Update) settings
+        self.zupt_enabled = kwargs.get("zupt_enabled", True)
+        self.zupt_accel_threshold = kwargs.get("zupt_accel_threshold", 0.2)  # m/s^2
+        self.zupt_gyro_threshold = kwargs.get("zupt_gyro_threshold", 1.0)  # deg/s
+        self.zupt_samples_required = kwargs.get("zupt_samples_required", 5)
+        self.zupt_stationary_count = 0
         
         # Components
         self.transformer = Transformation3D(**kwargs)
@@ -295,26 +302,37 @@ class Location3D:
         
         self.acceleration = accel_global
         
+        # ZUPT: Zero-Velocity Update
+        # Detect if robot is stationary based on acceleration and gyro readings
+        if self.zupt_enabled:
+            accel_magnitude = np.linalg.norm(self.acceleration)
+            gyro_magnitude = np.linalg.norm(self.d_orientation)
+            
+            if accel_magnitude < self.zupt_accel_threshold and gyro_magnitude < self.zupt_gyro_threshold:
+                self.zupt_stationary_count += 1
+            else:
+                self.zupt_stationary_count = 0
+            
+            # If stationary for enough samples, reset velocity to zero
+            if self.zupt_stationary_count >= self.zupt_samples_required:
+                self.velocity = np.array([0.0, 0.0, 0.0])
+        
         # Update position: p = p0 + v*dt + 0.5*a*dt^2
         self.pos = await self.transformer.translate_vector(
             vector=self.pos,
             translation=self.velocity * dt + 0.5 * self.acceleration * (dt ** 2)
         )
         
-        # Update velocity: v = v0 + a*dt
-        self.velocity = await self.transformer.translate_vector(
-            vector=self.velocity,
-            translation=self.acceleration * dt
-        )
-        
-        # Apply velocity decay to reduce drift when acceleration is near zero
-        if np.linalg.norm(self.acceleration) < self.accel_threshold:
-            self.velocity *= (1.0 - self.velocity_decay)
-        
-        if display:
-            print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
-        
-        return True
+        # Update velocity: v = v0 + a*dt (only if not ZUPT reset)
+        if self.zupt_stationary_count < self.zupt_samples_required:
+            self.velocity = await self.transformer.translate_vector(
+                vector=self.velocity,
+                translation=self.acceleration * dt
+            )
+            
+            # Apply velocity decay to reduce drift when acceleration is near zero
+            if np.linalg.norm(self.acceleration) < self.accel_threshold:
+                self.velocity *= (1.0 - self.velocity_decay)
         
         if display:
             print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
