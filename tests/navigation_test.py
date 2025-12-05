@@ -1,10 +1,10 @@
 """
 navigation_test.py
 
-Mobility test with integrated Navigation3D position tracking.
+Navigation-only test without mobility.
 
-This combines the safety ring obstacle avoidance from MotionController
-with real-time navigation tracking using the IMU sensor.
+Tests Navigation3D position tracking using the IMU sensor
+without any motor control or safety ring.
 """
 
 import sys
@@ -13,54 +13,37 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio
 from basehat import IMUSensor
-from systems.mobility_system import MotionController
-from systems.navigation_system import Navigation3D# Motion controller (handles motors and safety ring)
-motion = MotionController(
-    front_motor="A",
-    turn_motor="B",
-    ultrasonic_pin=26,
-    slowdown_distance=30.0,
-    stopping_distance=15.0,
-    forward_speed=20,
-    forward_speed_slow=10
-)
+from systems.navigation_system import Navigation3D
+import time
 
 # Navigation
 imu_sensor = IMUSensor()
 navigator = Navigation3D(imu=imu_sensor, mode="degrees")
 
 
-async def start_navigation():
-    """Run continuous navigation updates with logging and printing."""
+async def main():
+    """Calibrate IMU and run navigation updates."""
     await navigator.run_continuous_update(
         update_interval=0.1,
-        log_state=True,
+        log_state=False,
         print_state=True,
-        calibrate=False  # Already calibrated in main
+        calibrate=True
     )
 
-
-async def main():
-    """Calibrate IMU, then run safety ring and navigation concurrently."""
-    # Calibrate IMU while stationary (before motors start)
-    await navigator.calibrate(samples=50)
-    
-    # Now start the motor
-    motion.start()
-    
-    # Run safety ring and navigation concurrently
-    await asyncio.gather(
-        motion.start_safety_ring(),
-        start_navigation()
-    )
+def check_magnetism():
+    """Check magnetic field magnitude using Navigation3D."""
+    while True:
+        mag = navigator.get_magnetic_field()
+        print(f"{mag:.2f} µT")
+        time.sleep(0.2)
 
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        # asyncio.run(main())
+        check_magnetism()
     except KeyboardInterrupt:
-        motion.stop()
-        print(f"\nProgram terminated. Motors stopped.")
+        print(f"\nProgram terminated.")
         if navigator.log:
             print(f"Logged {len(navigator.log)} navigation entries over "
                   f"{navigator.log[-1]['timestamp']:.2f} seconds.")

@@ -152,6 +152,7 @@ class Location3D:
         # Calibration offsets (measured when stationary)
         self.accel_bias = np.array([0.0, 0.0, 0.0])
         self.gyro_bias = np.array([0.0, 0.0, 0.0])
+        self.mag_baseline = 0.0
         self.calibrated = False
         
         # Velocity decay factor to reduce drift (0.0 = no decay, 1.0 = instant stop)
@@ -187,6 +188,7 @@ class Location3D:
         
         accel_sum = np.array([0.0, 0.0, 0.0])
         gyro_sum = np.array([0.0, 0.0, 0.0])
+        mag_sum = 0.0
         
         for i in range(samples):
             ax, ay, az = self.imu.getAccel()
@@ -194,12 +196,14 @@ class Location3D:
             
             accel_sum += np.array([ax, ay, az])
             gyro_sum += np.array([gz, gy, gx])  # yaw, pitch, roll order
+            mag_sum += self.get_magnetic_field()
             
             await asyncio.sleep(delay)
         
         # Average the readings
         self.accel_bias = accel_sum / samples
         self.gyro_bias = gyro_sum / samples
+        self.mag_baseline = mag_sum / samples
         
         # The Z acceleration bias should preserve gravity
         # We want to measure what "zero" acceleration looks like in the local frame
@@ -210,6 +214,7 @@ class Location3D:
         print(f"Calibration complete.")
         print(f"  Accel bias: {self.accel_bias}")
         print(f"  Gyro bias: {self.gyro_bias}")
+        print(f"  Mag baseline: {self.mag_baseline:.2f} µT")
         
         return True
     
@@ -357,6 +362,24 @@ class Navigation3D(Location3D):
         super().__init__(**kwargs)
         self.log = []
         self.start_time = None
+        self.magnetic_field = np.array([0.0, 0.0, 0.0])
+        self.magnetic_magnitude = 0.0
+    
+    def get_magnetic_field(self):
+        """
+        Read and return the magnetic field magnitude.
+        
+        Returns:
+            float: Magnitude of magnetic field in micro-tesla
+        """
+        if self.imu is None:
+            return 0.0
+        
+        x_mag, y_mag, z_mag = self.imu.getMag()
+        self.magnetic_field = np.array([x_mag, y_mag, z_mag])
+        self.magnetic_magnitude = np.linalg.norm(self.magnetic_field)
+        
+        return self.magnetic_magnitude
     
     def log_state(self, timestamp):
         """
