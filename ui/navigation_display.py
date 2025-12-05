@@ -44,6 +44,7 @@ class NavigationDisplay:
         self.orientation = (0.0, 0.0, 0.0)  # (yaw, pitch, roll) in degrees
         self.velocity = (0.0, 0.0, 0.0)  # (vx, vy, vz) in m/s
         self.acceleration = (0.0, 0.0, 0.0)  # (ax, ay, az) in m/s^2
+        self.magnetic_magnitude = 0.0  # Magnetic field magnitude in µT
         
         # Center of display (origin) - will be updated on resize
         self.center_x = self.width // 2
@@ -53,7 +54,7 @@ class NavigationDisplay:
         self.major_grid_spacing = 1.0  # meters
         self.minor_grid_spacing = 0.1  # meters
         self.major_grid_color = "#404040"  # Gray 64
-        self.minor_grid_color = "#202020"  # Gray 32
+        self.minor_grid_color = "#101010"  # Very light gray
         self.axis_color = "#606060"
         
         # Arrow properties
@@ -74,6 +75,7 @@ class NavigationDisplay:
         self.orient_label = None
         self.vel_label = None
         self.accel_label = None
+        self.mag_label = None
     
     def _format_value(self, value, sig_figs):
         """Format a value to specified significant figures."""
@@ -233,6 +235,10 @@ class NavigationDisplay:
         if self.accel_label:
             accel_text = f"Acceleration (x, y, z): {self._format_tuple_sigfigs(self.acceleration, 4)} m/s²"
             self.accel_label.config(text=accel_text)
+        
+        if self.mag_label:
+            mag_text = f"Magnetic Field: {self.magnetic_magnitude:.2f} µT"
+            self.mag_label.config(text=mag_text)
     
     def update(self, **kwargs):
         """
@@ -252,6 +258,8 @@ class NavigationDisplay:
             self.velocity = kwargs["velocity"]
         if "acceleration" in kwargs:
             self.acceleration = kwargs["acceleration"]
+        if "magnetic_magnitude" in kwargs:
+            self.magnetic_magnitude = kwargs["magnetic_magnitude"]
         
         if self.canvas:
             self._refresh()
@@ -263,13 +271,33 @@ class NavigationDisplay:
             self.orientation = tuple(self.navigator.orientation)
             self.velocity = tuple(self.navigator.velocity)
             self.acceleration = tuple(self.navigator.acceleration)
+            self.magnetic_magnitude = self.navigator.magnetic_magnitude
             
             if self.canvas:
                 self._refresh()
     
+    def _get_magnetic_background_color(self):
+        """
+        Calculate background color based on magnetic field magnitude.
+        
+        0 µT = white (#FFFFFF), 400 µT = pure blue (#0000FF)
+        """
+        # Clamp magnetic magnitude to 0-400 range
+        mag = max(0.0, min(self.magnetic_magnitude, 400.0))
+        # Calculate blue intensity (0 to 1)
+        intensity = mag / 400.0
+        # Interpolate from white to blue
+        r = int(255 * (1 - intensity))
+        g = int(255 * (1 - intensity))
+        b = 255
+        return f"#{r:02x}{g:02x}{b:02x}"
+    
     def _refresh(self):
         """Refresh the entire display."""
         self.canvas.delete("all")
+        # Update background color based on magnetic field
+        bg_color = self._get_magnetic_background_color()
+        self.canvas.configure(bg=bg_color)
         self._draw_grid()
         self._draw_rover()
         # Raise rover to top layer
@@ -304,6 +332,10 @@ class NavigationDisplay:
         self.accel_label = tk.Label(self.info_frame, text="Acceleration (x, y, z): (0.0, 0.0, 0.0) m/s²",
                                     font=font, bg="#F0F0F0", anchor="w")
         self.accel_label.pack(fill=tk.X, padx=10, pady=2)
+        
+        self.mag_label = tk.Label(self.info_frame, text="Magnetic Field: 0.00 µT",
+                                  font=font, bg="#F0F0F0", anchor="w")
+        self.mag_label.pack(fill=tk.X, padx=10, pady=2)
         
         # Create canvas (expandable)
         self.canvas = tk.Canvas(
