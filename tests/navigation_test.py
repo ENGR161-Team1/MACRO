@@ -30,18 +30,18 @@ async def main():
         calibrate=True
     )
 
-def check_magnetism():
+async def check_magnetism():
     """Check magnetic field magnitude using Navigation3D."""
     while True:
-        mag = navigator.get_magnetic_field()
+        mag = await navigator.get_magnetic_field()
         print(f"{mag:.2f} µT")
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
 
 
 if __name__ == "__main__":
     try:
         # asyncio.run(main())
-        check_magnetism()
+        asyncio.run(check_magnetism())
     except KeyboardInterrupt:
         print(f"\nProgram terminated.")
         if navigator.log:
