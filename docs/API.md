@@ -51,7 +51,9 @@ tracker = Location3D(
 | `pos` | np.array | Current position [x, y, z] in meters |
 | `velocity` | np.array | Current velocity [vx, vy, vz] in m/s |
 | `acceleration` | np.array | Global acceleration (gravity-compensated) |
+| `accel_local` | np.array | Local-frame acceleration |
 | `orientation` | np.array | Current orientation [yaw, pitch, roll] |
+| `d_orientation` | np.array | Angular velocity |
 | `calibrated` | bool | Whether IMU has been calibrated |
 | `accel_bias` | np.array | Calibrated acceleration bias |
 | `gyro_bias` | np.array | Calibrated gyroscope bias |
@@ -99,15 +101,26 @@ navigator = Navigation3D(
 |-----------|------|-------------|
 | `log` | list | List of logged navigation state entries |
 | `start_time` | float | Timestamp when navigation started |
+| `magnetic_field` | np.array | Current magnetic field vector [x, y, z] in µT |
+| `magnetic_magnitude` | float | Current magnetic field magnitude in µT |
+| `mag_baseline` | float | Calibrated magnetic field baseline in µT |
 | *Inherits all attributes from Location3D* | | |
 
 **Methods:**
 
 | Method | Description |
 |--------|-------------|
-| `log_state(timestamp)` | Log current state (position, velocity, acceleration, orientation) |
-| `print_state(timestamp)` | Print current state as formatted tuples |
+| `get_magnetic_field()` | Async - Read and return magnetic field magnitude (µT) |
+| `update_state(**kwargs)` | Async - Update position, orientation, and magnetic field |
+| `log_state(timestamp)` | Log current state with magnetic field |
+| `print_state(timestamp)` | Print current state (pos/vel rounded to 3dp) |
 | `run_continuous_update(**kwargs)` | Continuous update loop with optional logging/printing |
+
+**update_state kwargs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dt` | float | 0.1 | Time step in seconds |
 
 **run_continuous_update kwargs:**
 

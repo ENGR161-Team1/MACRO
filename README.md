@@ -37,14 +37,47 @@ MACRO/
 │
 ├── systems/                # Core rover systems
 │   ├── mobility_system.py  # Movement and motor control
-│   ├── navigation_system.py# Path planning and navigation
+│   ├── navigation_system.py# 3D navigation with IMU integration
 │   ├── sensors.py          # Sensor input abstraction
-│   └── task_manager.py     # Task scheduling
+│   ├── task_manager.py     # Task scheduling
+│   └── thermal_system.py   # Thermal management
+│
+├── ui/                     # User interface components
+│   └── navigation_display.py # Real-time navigation visualization
+│
+├── tests/                  # Test files
+│   ├── navigation_test.py      # Navigation-only test
+│   ├── nav-mobility_test.py    # Navigation + mobility test
+│   └── navigation_display_test.py # Navigation + display test
+│
+├── docs/                   # Documentation
+│   ├── README.md           # Documentation index
+│   ├── API.md              # API reference
+│   └── HARDWARE.md         # Hardware setup guide
 │
 └── poc/                    # Proof of Concept experiments
     ├── poc_example.py      # Navigation POC with PID control
     └── proof_of_concept.py # Basic motor control POC
 ```
+
+## Features
+
+### Navigation System (v0.7.0)
+- **3D Position Tracking**: Dead reckoning with IMU integration
+- **IMU Calibration**: Automatic bias measurement for accelerometer, gyroscope, and magnetometer
+- **Magnetic Field Sensing**: Real-time magnetic field magnitude detection
+- **Drift Reduction**: Velocity decay and acceleration thresholding
+- **State Logging**: Timestamped logs of position, velocity, orientation, and magnetic field
+
+### Mobility System
+- **Motor Control**: LEGO Technic motors via Build HAT
+- **Safety Ring**: Ultrasonic obstacle detection with slowdown/stop zones
+- **Async Operation**: Non-blocking motor and sensor updates
+
+### Navigation Display
+- **Real-time Visualization**: 2D grid with rover position and velocity arrow
+- **Info Panel**: Position, orientation, velocity, acceleration display
+- **Resizable Window**: Adaptive canvas scaling
 
 ## Hardware
 

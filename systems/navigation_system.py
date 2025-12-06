@@ -152,6 +152,7 @@ class Location3D:
         # Calibration offsets (measured when stationary)
         self.accel_bias = np.array([0.0, 0.0, 0.0])
         self.gyro_bias = np.array([0.0, 0.0, 0.0])
+        self.mag_baseline = 0.0
         self.calibrated = False
         
         # Velocity decay factor to reduce drift (0.0 = no decay, 1.0 = instant stop)
@@ -187,6 +188,7 @@ class Location3D:
         
         accel_sum = np.array([0.0, 0.0, 0.0])
         gyro_sum = np.array([0.0, 0.0, 0.0])
+        mag_sum = 0.0
         
         for i in range(samples):
             ax, ay, az = self.imu.getAccel()
@@ -194,12 +196,14 @@ class Location3D:
             
             accel_sum += np.array([ax, ay, az])
             gyro_sum += np.array([gz, gy, gx])  # yaw, pitch, roll order
+            mag_sum += self.get_magnetic_field()
             
             await asyncio.sleep(delay)
         
         # Average the readings
         self.accel_bias = accel_sum / samples
         self.gyro_bias = gyro_sum / samples
+        self.mag_baseline = mag_sum / samples
         
         # The Z acceleration bias should preserve gravity
         # We want to measure what "zero" acceleration looks like in the local frame
@@ -210,6 +214,7 @@ class Location3D:
         print(f"Calibration complete.")
         print(f"  Accel bias: {self.accel_bias}")
         print(f"  Gyro bias: {self.gyro_bias}")
+        print(f"  Mag baseline: {self.mag_baseline:.2f} µT")
         
         return True
     
@@ -299,9 +304,6 @@ class Location3D:
         if self.calibrated:
             self.accel_local -= self.accel_bias
         
-        # Update orientation from gyroscope
-        await self.update_orientation(dt=dt)
-        
         # Transform local acceleration to global frame
         accel_global = await self.transformer.rotate_vector(
             vector=self.accel_local,
@@ -357,6 +359,37 @@ class Navigation3D(Location3D):
         super().__init__(**kwargs)
         self.log = []
         self.start_time = None
+        self.magnetic_field = np.array([0.0, 0.0, 0.0])
+        self.magnetic_magnitude = 0.0
+    
+    async def get_magnetic_field(self):
+        """
+        Read and return the magnetic field magnitude.
+        
+        Returns:
+            float: Magnitude of magnetic field in micro-tesla
+        """
+        if self.imu is None:
+            return 0.0
+        
+        x_mag, y_mag, z_mag = self.imu.getMag()
+        self.magnetic_field = np.array([x_mag, y_mag, z_mag])
+        self.magnetic_magnitude = np.linalg.norm(self.magnetic_field)
+        
+        return self.magnetic_magnitude
+    
+    async def update_state(self, **kwargs):
+        """
+        Update full navigation state: position, orientation, and magnetic field.
+        
+        Args:
+            dt (float): Time step in seconds (default: 0.1)
+        """
+        dt = kwargs.get("dt", 0.1)
+        
+        await self.update_position(dt=dt)
+        await self.update_orientation(dt=dt)
+        await self.get_magnetic_field()
     
     def log_state(self, timestamp):
         """
@@ -370,7 +403,8 @@ class Navigation3D(Location3D):
             "position": self.pos.copy(),
             "velocity": self.velocity.copy(),
             "acceleration": self.acceleration.copy(),
-            "orientation": self.orientation.copy()
+            "orientation": self.orientation.copy(),
+            "magnetic_magnitude": self.magnetic_magnitude
         }
         self.log.append(entry)
     
@@ -381,12 +415,12 @@ class Navigation3D(Location3D):
         Args:
             timestamp (float): Current timestamp in seconds since start
         """
-        position = tuple(self.pos)
-        velocity = tuple(self.velocity)
+        position = tuple(round(p, 3) for p in self.pos)
+        velocity = tuple(round(v, 3) for v in self.velocity)
         acceleration = tuple(self.acceleration)
         orientation = tuple(self.orientation)
         print(f"[{timestamp:.3f}s] Pos: {position}, Vel: {velocity}, "
-              f"Acc: {acceleration}, Orient: {orientation}")
+              f"Acc: {acceleration}, Orient: {orientation}, Mag: {self.magnetic_magnitude:.2f} µT")
     
     async def run_continuous_update(self, **kwargs):
         """
@@ -414,7 +448,7 @@ class Navigation3D(Location3D):
         self.start_time = time.time()
         
         while True:
-            await self.update_position(dt=update_interval)
+            await self.update_state(dt=update_interval)
             
             # Get current timestamp
             timestamp = time.time() - self.start_time
