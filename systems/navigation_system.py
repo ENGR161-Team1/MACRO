@@ -200,7 +200,7 @@ class Location3D:
             
             accel_sum += np.array([ax, ay, az])
             gyro_sum += np.array([gz, gy, gx])  # yaw, pitch, roll order
-            mag_sum += self.get_magnetic_field()
+            mag_sum += await self.get_magnetic_field()
             
             await asyncio.sleep(delay)
         
