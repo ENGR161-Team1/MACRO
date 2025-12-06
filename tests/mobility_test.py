@@ -1,5 +1,5 @@
 import asyncio
-from buildhat import ColorSensor
+from buildhat import ColorSensor, Motor
 from systems.mobility_system import MotionController
 # TODO: LineFinder class not yet implemented in basehat/line_finder.py
 # from basehat import LineFinder
@@ -14,6 +14,10 @@ controller = MotionController(
     forward_speed=20,
     forward_speed_slow=10
 )
+
+# Payload motor
+payload_motor = Motor("C")
+PAYLOAD_SPEED = 2
 
 color_sensor = ColorSensor("D")
 # TODO: Uncomment when LineFinder is implemented
@@ -39,6 +43,9 @@ def print_help():
     print("  q  - Straighten wheels")
     print("  +  - Increase speed")
     print("  -  - Decrease speed")
+    print("  p  - Deploy payload")
+    print("  o  - Retract payload")
+    print("  l  - Stop payload")
     print("  h  - Show this help")
     print("  x  - Exit")
     print("================================\n")
@@ -113,6 +120,24 @@ async def decrease_speed():
         print("Already at minimum speed")
 
 
+async def deploy_payload():
+    """Deploy payload (start payload motor forward)."""
+    payload_motor.start(PAYLOAD_SPEED)
+    print("Deploying payload...")
+
+
+async def retract_payload():
+    """Retract payload (start payload motor reverse)."""
+    payload_motor.start(-PAYLOAD_SPEED)
+    print("Retracting payload...")
+
+
+async def stop_payload():
+    """Stop payload motor."""
+    payload_motor.stop()
+    print("Payload motor stopped")
+
+
 async def manual_controller():
     """Handle manual keyboard input for rover control."""
     global central_pos
@@ -141,6 +166,12 @@ async def manual_controller():
             await increase_speed()
         elif command == "-":
             await decrease_speed()
+        elif command == "p":
+            await deploy_payload()
+        elif command == "o":
+            await retract_payload()
+        elif command == "l":
+            await stop_payload()
         elif command == "h":
             print_help()
         elif command == "x":
@@ -176,4 +207,5 @@ if __name__ == "__main__":
         pass
     finally:
         controller.stop()
+        payload_motor.stop()
         print("\nProgram terminated. Motors stopped.")
