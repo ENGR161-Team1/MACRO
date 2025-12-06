@@ -45,6 +45,7 @@ class NavigationDisplay:
         self.velocity = (0.0, 0.0, 0.0)  # (vx, vy, vz) in m/s
         self.acceleration = (0.0, 0.0, 0.0)  # (ax, ay, az) in m/s^2
         self.magnetic_magnitude = 0.0  # Magnetic field magnitude in µT
+        self.motor_velocity = 0.0  # Motor velocity in degrees/second
         
         # Center of display (origin) - will be updated on resize
         self.center_x = self.width // 2
@@ -76,6 +77,7 @@ class NavigationDisplay:
         self.vel_label = None
         self.accel_label = None
         self.mag_label = None
+        self.motor_vel_label = None
     
     def _format_value(self, value, sig_figs):
         """Format a value to specified significant figures."""
@@ -239,6 +241,10 @@ class NavigationDisplay:
         if self.mag_label:
             mag_text = f"Magnetic Field: {self.magnetic_magnitude:.2f} µT"
             self.mag_label.config(text=mag_text)
+        
+        if self.motor_vel_label:
+            motor_vel_text = f"Motor Velocity: {self.motor_velocity:.2f} °/s"
+            self.motor_vel_label.config(text=motor_vel_text)
     
     def update(self, **kwargs):
         """
@@ -249,6 +255,8 @@ class NavigationDisplay:
             orientation (tuple): (yaw, pitch, roll) in degrees
             velocity (tuple): (vx, vy, vz) in m/s
             acceleration (tuple): (ax, ay, az) in m/s^2
+            magnetic_magnitude (float): Magnetic field magnitude in µT
+            motor_velocity (float): Motor velocity in degrees/second
         """
         if "position" in kwargs:
             self.position = kwargs["position"]
@@ -260,6 +268,8 @@ class NavigationDisplay:
             self.acceleration = kwargs["acceleration"]
         if "magnetic_magnitude" in kwargs:
             self.magnetic_magnitude = kwargs["magnetic_magnitude"]
+        if "motor_velocity" in kwargs:
+            self.motor_velocity = kwargs["motor_velocity"]
         
         if self.canvas:
             self._refresh()
@@ -272,6 +282,10 @@ class NavigationDisplay:
             self.velocity = tuple(self.navigator.velocity)
             self.acceleration = tuple(self.navigator.acceleration)
             self.magnetic_magnitude = self.navigator.magnetic_magnitude
+            
+            # Get motor velocity if motion controller available
+            if self.navigator.motion_controller is not None:
+                self.motor_velocity = self.navigator.motion_controller.motor_velocity
             
             if self.canvas:
                 self._refresh()
@@ -336,6 +350,10 @@ class NavigationDisplay:
         self.mag_label = tk.Label(self.info_frame, text="Magnetic Field: 0.00 µT",
                                   font=font, bg="#F0F0F0", anchor="w")
         self.mag_label.pack(fill=tk.X, padx=10, pady=2)
+        
+        self.motor_vel_label = tk.Label(self.info_frame, text="Motor Velocity: 0.00 °/s",
+                                         font=font, bg="#F0F0F0", anchor="w")
+        self.motor_vel_label.pack(fill=tk.X, padx=10, pady=2)
         
         # Create canvas (expandable)
         self.canvas = tk.Canvas(
