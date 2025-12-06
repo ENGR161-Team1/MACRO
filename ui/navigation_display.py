@@ -23,27 +23,34 @@ class NavigationDisplay:
     - Major grid lines every 1 meter (gray 64)
     - Minor grid lines every 0.1 meters (gray 32)
     - Info panel showing position, orientation, velocity, acceleration
+    - Dynamic zoom with mouse wheel or +/- keys
+    - Resizable window with automatic scale adjustment
     
     Args:
         width (int): Initial window width in pixels (default: 800)
         height (int): Initial window height in pixels (default: 800)
-        scale (float): Pixels per meter (default: 40.0)
         world_min (float): Minimum world coordinate in meters (default: -10.0)
         world_max (float): Maximum world coordinate in meters (default: 10.0)
         title (str): Window title
         navigator (Navigation3D): Navigation3D instance for data
+    
+    Controls:
+        Mouse wheel / +/-: Zoom in/out
+        Window resize: Automatically adjusts scale
     """
     
     def __init__(self, **kwargs):
         self.width = kwargs.get("width", 800)
         self.height = kwargs.get("height", 800)
-        self.scale = kwargs.get("scale", 40.0)  # pixels per meter (40 = -10 to 10m in 800px)
         self.title = kwargs.get("title", "MACRO Navigation Display")
         self.navigator = kwargs.get("navigator", None)
         
-        # World bounds in meters
+        # World bounds in meters (symmetric around origin)
         self.world_min = kwargs.get("world_min", -10.0)
         self.world_max = kwargs.get("world_max", 10.0)
+        
+        # Scale is calculated dynamically from window size and world bounds
+        self._update_scale()
         
         # Position and orientation state
         self.position = (0.0, 0.0, 0.0)  # (x, y, z) in meters
@@ -114,12 +121,65 @@ class NavigationDisplay:
         screen_y = self.center_y - y * self.scale  # Y is inverted in screen coords
         return screen_x, screen_y
     
+    def _update_scale(self):
+        """
+        Update scale based on current window size and world bounds.
+        
+        Scale is calculated to fit the world bounds in the smaller dimension.
+        """
+        world_range = self.world_max - self.world_min
+        # Use smaller dimension to ensure full world fits
+        min_dimension = min(self.width, self.height)
+        self.scale = min_dimension / world_range
+        self.center_x = self.width // 2
+        self.center_y = self.height // 2
+    
+    def set_world_bounds(self, world_min, world_max):
+        """
+        Update world bounds and recalculate scale.
+        
+        Args:
+            world_min (float): Minimum world coordinate in meters
+            world_max (float): Maximum world coordinate in meters
+        """
+        self.world_min = world_min
+        self.world_max = world_max
+        self._update_scale()
+        if self.canvas:
+            self._refresh()
+    
+    def zoom_in(self, factor=1.5):
+        """Zoom in by reducing world bounds."""
+        center = (self.world_max + self.world_min) / 2
+        half_range = (self.world_max - self.world_min) / (2 * factor)
+        self.world_min = center - half_range
+        self.world_max = center + half_range
+        self._update_scale()
+        if self.canvas:
+            self._refresh()
+    
+    def zoom_out(self, factor=1.5):
+        """Zoom out by expanding world bounds."""
+        center = (self.world_max + self.world_min) / 2
+        half_range = (self.world_max - self.world_min) * factor / 2
+        self.world_min = center - half_range
+        self.world_max = center + half_range
+        self._update_scale()
+        if self.canvas:
+            self._refresh()
+    
+    def _on_mouse_wheel(self, event):
+        """Handle mouse wheel for zooming (Windows/macOS)."""
+        if event.delta > 0:
+            self.zoom_in(1.2)
+        else:
+            self.zoom_out(1.2)
+
     def _on_resize(self, event):
         """Handle window resize events."""
         self.width = event.width
         self.height = event.height
-        self.center_x = self.width // 2
-        self.center_y = self.height // 2
+        self._update_scale()
         self._refresh()
     
     def _draw_grid(self):
@@ -372,6 +432,14 @@ class NavigationDisplay:
         
         # Bind resize event
         self.canvas.bind("<Configure>", self._on_resize)
+        
+        # Bind keyboard events for zoom
+        self.root.bind("<plus>", lambda e: self.zoom_in())
+        self.root.bind("<equal>", lambda e: self.zoom_in())  # + without shift
+        self.root.bind("<minus>", lambda e: self.zoom_out())
+        self.root.bind("<MouseWheel>", self._on_mouse_wheel)
+        self.root.bind("<Button-4>", lambda e: self.zoom_in(1.2))  # Linux scroll up
+        self.root.bind("<Button-5>", lambda e: self.zoom_out(1.2))  # Linux scroll down
         
         self._refresh()
         self.running = True
