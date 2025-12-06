@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `motor_vel_label` showing live motor velocity
 - `update_from_navigator()` now pulls motor velocity from `navigator.motion_controller`
 
+### Changed
+- Magnetic field gradient range: 0-400 µT → 0-5000 µT
+
+### Fixed
+- Added missing `await` for `get_magnetic_field()` in `calibrate()` method
+
 ---
 
 ## [0.8.0] - 2024-12-06
