@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.8.2] - 2024-12-06
+
+### Added
+- Dynamic scale in `NavigationDisplay` based on window size and world bounds
+- Zoom controls: mouse wheel, +/- keys, `zoom_in()`, `zoom_out()` methods
+- `set_world_bounds(min, max)` for programmatic view control
+- `world_min` and `world_max` parameters (default: -10 to 10 meters)
+- Magnetic field indicator ring around rover (0.06m radius)
+
+### Changed
+- Scale now auto-calculates from window dimensions and world bounds
+- Magnetic field visualization: ring around rover instead of background color
+- Default scale adjusted for -10 to 10m world bounds
+
+---
+
 ## [0.8.1] - 2024-12-06
 
 ### Added
