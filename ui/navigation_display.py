@@ -285,6 +285,16 @@ class NavigationDisplay:
             fill=self.rover_color, outline=self.rover_color,
             tags="rover"
         )
+        
+        # Draw magnetic field indicator ring around rover (0.06m radius in world coords)
+        mag_color = self._get_magnetic_color()
+        mag_ring_radius = 0.06 * self.scale  # Convert meters to pixels
+        self.canvas.create_oval(
+            sx - mag_ring_radius, sy - mag_ring_radius,
+            sx + mag_ring_radius, sy + mag_ring_radius,
+            fill="", outline=mag_color, width=4,
+            tags="rover"
+        )
     
     def _update_info_panel(self):
         """Update the info panel with current navigation data."""
@@ -356,9 +366,9 @@ class NavigationDisplay:
             if self.canvas:
                 self._refresh()
     
-    def _get_magnetic_background_color(self):
+    def _get_magnetic_color(self):
         """
-        Calculate background color based on magnetic field magnitude.
+        Calculate color based on magnetic field magnitude.
         
         0 µT = white (#FFFFFF), 5000 µT = pure blue (#0000FF)
         """
@@ -375,9 +385,6 @@ class NavigationDisplay:
     def _refresh(self):
         """Refresh the entire display."""
         self.canvas.delete("all")
-        # Update background color based on magnetic field
-        bg_color = self._get_magnetic_background_color()
-        self.canvas.configure(bg=bg_color)
         self._draw_grid()
         self._draw_rover()
         # Raise rover to top layer
