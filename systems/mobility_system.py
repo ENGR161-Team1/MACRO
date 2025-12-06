@@ -1,4 +1,5 @@
 import asyncio
+import time
 from buildhat import Motor
 from basehat import UltrasonicSensor
 
@@ -22,6 +23,11 @@ class MotionController:
     # State tracking
     self.moving = True
     self.current_speed = self.forward_speed
+    
+    # Motor encoder state
+    self.motor_position = 0.0  # degrees
+    self.motor_velocity = 0.0  # degrees per second
+    self._prev_position = 0.0  # for velocity calculation
 
   def start(self, speed=None):
     if speed is None:
@@ -74,4 +80,36 @@ class MotionController:
     """Start moving and run the safety ring."""
     self.front_motor.start(self.forward_speed)
     await self.start_safety_ring()
+
+  async def update_motor_state(self, dt=0.1):
+    """
+    Update motor position and velocity from the encoder.
+    
+    Args:
+        dt (float): Time step in seconds (default: 0.1)
+    """
+    self.motor_position = self.front_motor.get_position()
+    
+    if dt > 0:
+      self.motor_velocity = (self.motor_position - self._prev_position) / dt
+    
+    self._prev_position = self.motor_position
+
+  async def get_velocity(self):
+    """
+    Get the current motor velocity.
+    
+    Returns:
+        float: Motor velocity in degrees per second
+    """
+    return self.motor_velocity
+
+  def get_position(self):
+    """
+    Get the current motor position.
+    
+    Returns:
+        float: Motor position in degrees
+    """
+    return self.motor_position
 

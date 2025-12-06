@@ -156,14 +156,18 @@ class Location3D:
         self.calibrated = False
         
         # Velocity decay factor to reduce drift (0.0 = no decay, 1.0 = instant stop)
-        self.velocity_decay = kwargs.get("velocity_decay", 0.02)
+        self.velocity_decay = kwargs.get("velocity_decay", 0.04)
         
         # Threshold for considering acceleration as noise (m/s^2)
-        self.accel_threshold = kwargs.get("accel_threshold", 0.1)
+        self.accel_threshold = kwargs.get("accel_threshold", 0.05)
+        
+        # Motor velocity threshold for velocity decay (degrees/second)
+        self.motor_velocity_threshold = kwargs.get("motor_velocity_threshold", 1.0)
         
         # Components
         self.transformer = Transformation3D(**kwargs)
         self.imu = kwargs.get("imu", None)
+        self.motion_controller = kwargs.get("motion_controller", None)
         self.initialized = False
     
     async def calibrate(self, **kwargs):
@@ -292,9 +296,14 @@ class Location3D:
             translation=prev_acceleration * dt
         )
         
-        # Apply velocity decay to reduce drift when acceleration is near zero
-        if np.linalg.norm(prev_acceleration) < self.accel_threshold:
-            self.velocity *= (1.0 - self.velocity_decay)
+        # Apply velocity decay to reduce drift when motor is near stationary
+        if self.motion_controller is not None:
+            if abs(self.motion_controller.motor_velocity) < self.motor_velocity_threshold:
+                self.velocity *= (1.0 - self.velocity_decay)
+        else:
+            # Fallback to acceleration threshold if no motion controller
+            if np.linalg.norm(prev_acceleration) < self.accel_threshold:
+                self.velocity *= (1.0 - self.velocity_decay)
         
         # NOW read new acceleration for next iteration
         ax, ay, az = self.imu.getAccel()
@@ -408,19 +417,48 @@ class Navigation3D(Location3D):
         }
         self.log.append(entry)
     
-    def print_state(self, timestamp):
+    def print_state(self, timestamp, fields=None):
         """
         Print the current navigation state with timestamp.
         
         Args:
             timestamp (float): Current timestamp in seconds since start
+            fields (list): List of fields to show. Options: "position", "velocity", 
+                          "acceleration", "orientation", "magnetic".
+                          Use ["all"] for all fields, [] or None for nothing.
+                          Default: ["all"]
         """
-        position = tuple(round(p, 3) for p in self.pos)
-        velocity = tuple(round(v, 3) for v in self.velocity)
-        acceleration = tuple(self.acceleration)
-        orientation = tuple(self.orientation)
-        print(f"[{timestamp:.3f}s] Pos: {position}, Vel: {velocity}, "
-              f"Acc: {acceleration}, Orient: {orientation}, Mag: {self.magnetic_magnitude:.2f} µT")
+        if fields is None:
+            fields = ["all"]
+        
+        if not fields or fields == []:
+            return
+        
+        show_all = "all" in fields
+        
+        parts = [f"[{timestamp:.3f}s]"]
+        
+        if show_all or "position" in fields:
+            position = tuple(round(p, 3) for p in self.pos)
+            parts.append(f"Pos: {position}")
+        
+        if show_all or "velocity" in fields:
+            velocity = tuple(round(v, 3) for v in self.velocity)
+            parts.append(f"Vel: {velocity}")
+        
+        if show_all or "acceleration" in fields:
+            acceleration = tuple(round(a, 3) for a in self.acceleration)
+            parts.append(f"Acc: {acceleration}")
+        
+        if show_all or "orientation" in fields:
+            orientation = tuple(round(o, 2) for o in self.orientation)
+            parts.append(f"Orient: {orientation}")
+        
+        if show_all or "magnetic" in fields:
+            parts.append(f"Mag: {self.magnetic_magnitude:.2f} µT")
+        
+        if len(parts) > 1:
+            print(", ".join(parts))
     
     async def run_continuous_update(self, **kwargs):
         """
