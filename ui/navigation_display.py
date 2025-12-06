@@ -294,12 +294,12 @@ class NavigationDisplay:
         """
         Calculate background color based on magnetic field magnitude.
         
-        0 µT = white (#FFFFFF), 400 µT = pure blue (#0000FF)
+        0 µT = white (#FFFFFF), 5000 µT = pure blue (#0000FF)
         """
-        # Clamp magnetic magnitude to 0-400 range
-        mag = max(0.0, min(self.magnetic_magnitude, 400.0))
+        # Clamp magnetic magnitude to 0-5000 range
+        mag = max(0.0, min(self.magnetic_magnitude, 5000.0))
         # Calculate blue intensity (0 to 1)
-        intensity = mag / 400.0
+        intensity = mag / 5000.0
         # Interpolate from white to blue
         r = int(255 * (1 - intensity))
         g = int(255 * (1 - intensity))
