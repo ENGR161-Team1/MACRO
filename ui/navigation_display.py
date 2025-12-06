@@ -27,7 +27,9 @@ class NavigationDisplay:
     Args:
         width (int): Initial window width in pixels (default: 800)
         height (int): Initial window height in pixels (default: 800)
-        scale (float): Pixels per meter (default: 50.0)
+        scale (float): Pixels per meter (default: 40.0)
+        world_min (float): Minimum world coordinate in meters (default: -10.0)
+        world_max (float): Maximum world coordinate in meters (default: 10.0)
         title (str): Window title
         navigator (Navigation3D): Navigation3D instance for data
     """
@@ -35,9 +37,13 @@ class NavigationDisplay:
     def __init__(self, **kwargs):
         self.width = kwargs.get("width", 800)
         self.height = kwargs.get("height", 800)
-        self.scale = kwargs.get("scale", 50.0)  # pixels per meter
+        self.scale = kwargs.get("scale", 40.0)  # pixels per meter (40 = -10 to 10m in 800px)
         self.title = kwargs.get("title", "MACRO Navigation Display")
         self.navigator = kwargs.get("navigator", None)
+        
+        # World bounds in meters
+        self.world_min = kwargs.get("world_min", -10.0)
+        self.world_max = kwargs.get("world_max", 10.0)
         
         # Position and orientation state
         self.position = (0.0, 0.0, 0.0)  # (x, y, z) in meters
@@ -118,9 +124,9 @@ class NavigationDisplay:
     
     def _draw_grid(self):
         """Draw the coordinate grid with major and minor lines."""
-        # Calculate grid range
-        x_range = self.width / (2 * self.scale)
-        y_range = self.height / (2 * self.scale)
+        # Use world bounds for grid range
+        x_range = max(abs(self.world_min), abs(self.world_max))
+        y_range = max(abs(self.world_min), abs(self.world_max))
         
         # Draw minor grid lines (0.1m spacing, gray 32)
         x = 0
