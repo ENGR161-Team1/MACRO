@@ -2,7 +2,7 @@
 
 This directory contains detailed documentation for the MACRO (Mars Autonomous Cargo Rover Operations) project.
 
-**Current Version: 0.7.0**
+**Current Version: 0.8.0**
 
 ## Contents
 
@@ -17,9 +17,15 @@ This directory contains detailed documentation for the MACRO (Mars Autonomous Ca
 import asyncio
 from basehat import IMUSensor
 from systems import Navigation3D
+from systems.mobility_system import MotionController
 
 imu = IMUSensor()
-navigator = Navigation3D(imu=imu, mode="degrees")
+motion = MotionController(front_motor="A", turn_motor="B")
+navigator = Navigation3D(
+    imu=imu, 
+    mode="degrees",
+    motion_controller=motion
+)
 
 async def main():
     await navigator.run_continuous_update(
@@ -45,5 +51,5 @@ asyncio.run(main())
 | README.md | ✅ Complete |
 | CHANGELOG.md | ✅ Active |
 | CONTRIBUTING.md | ✅ Complete |
-| API Reference | ✅ Updated for v0.7.0 |
+| API Reference | ✅ Updated for v0.8.0 |
 | Hardware Guide | ✅ Complete |

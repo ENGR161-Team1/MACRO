@@ -32,15 +32,20 @@ transformer = Transformation3D(mode="degrees")  # or "radians"
 ```python
 from systems import Location3D
 from basehat import IMUSensor
+from systems.mobility_system import MotionController
 
 imu = IMUSensor()
+motion = MotionController(front_motor="A", turn_motor="B")
+
 tracker = Location3D(
     imu=imu,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
     mode="degrees",
-    velocity_decay=0.02,      # Drift reduction when stationary
-    accel_threshold=0.1       # Noise filter threshold (m/s²)
+    velocity_decay=0.04,           # Drift reduction when stationary
+    accel_threshold=0.05,          # Noise filter threshold (m/s²)
+    motor_velocity_threshold=1.0,  # Motor velocity for decay trigger
+    motion_controller=motion       # Optional: for motor-based velocity decay
 )
 ```
 
@@ -57,6 +62,7 @@ tracker = Location3D(
 | `calibrated` | bool | Whether IMU has been calibrated |
 | `accel_bias` | np.array | Calibrated acceleration bias |
 | `gyro_bias` | np.array | Calibrated gyroscope bias |
+| `motion_controller` | MotionController | Optional motor controller for velocity decay |
 
 **Methods:**
 
@@ -83,15 +89,20 @@ tracker = Location3D(
 ```python
 from systems import Navigation3D
 from basehat import IMUSensor
+from systems.mobility_system import MotionController
 
 imu = IMUSensor()
+motion = MotionController(front_motor="A", turn_motor="B")
+
 navigator = Navigation3D(
     imu=imu,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
     mode="degrees",
-    velocity_decay=0.02,
-    accel_threshold=0.1
+    velocity_decay=0.04,
+    accel_threshold=0.05,
+    motor_velocity_threshold=1.0,
+    motion_controller=motion
 )
 ```
 
@@ -113,10 +124,23 @@ navigator = Navigation3D(
 | `get_magnetic_field()` | Async - Read and return magnetic field magnitude (µT) |
 | `update_state(**kwargs)` | Async - Update position, orientation, and magnetic field |
 | `log_state(timestamp)` | Log current state with magnetic field |
-| `print_state(timestamp)` | Print current state (pos/vel rounded to 3dp) |
+| `print_state(timestamp, fields)` | Print current state with customizable fields |
 | `run_continuous_update(**kwargs)` | Continuous update loop with optional logging/printing |
 
-**update_state kwargs:**
+**print_state fields:**
+
+| Field | Description |
+|-------|-------------|
+| `"all"` | Show all fields (default) |
+| `"position"` | Show position |
+| `"velocity"` | Show velocity |
+| `"acceleration"` | Show acceleration |
+| `"orientation"` | Show orientation |
+| `"magnetic"` | Show magnetic field |
+
+Example: `navigator.print_state(timestamp, ["position", "velocity"])`
+
+**update_state kwargs:****
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -176,10 +200,11 @@ async def main():
 | `navigator` | Navigation3D | None | Navigation3D instance for data |
 
 **Display Features:**
-- 2D grid with 1m major gridlines (gray #404040) and 0.1m minor gridlines (gray #202020)
+- 2D grid with 1m major gridlines (gray #404040) and 0.1m minor gridlines (gray #101010)
 - Black dot for rover position with blue velocity arrow
 - Arrow direction and length based on velocity vector
-- Info panel showing position, orientation, velocity, acceleration
+- Info panel showing position, orientation, velocity, acceleration, magnetic field
+- Magnetic field gradient background (0 µT = white, 400 µT = blue)
 - Resizable window with adaptive canvas
 
 **Methods:**
@@ -219,9 +244,32 @@ controller = MotionController(
     turn_motor="B",
     ultrasonic_pin=26,
     slowdown_distance=30.0,
-    stopping_distance=15.0
+    stopping_distance=15.0,
+    forward_speed=20,
+    forward_speed_slow=10
 )
 ```
+
+**Attributes:**
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `motor_position` | float | Current motor position in degrees |
+| `motor_velocity` | float | Current motor velocity in degrees/second |
+| `moving` | bool | Whether motors are currently running |
+| `current_speed` | int | Current speed setting |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `start(speed)` | Start the front motor |
+| `stop()` | Stop all motors |
+| `start_safety_ring()` | Async - Run obstacle detection loop |
+| `run_with_safety()` | Async - Start motor and safety ring |
+| `update_motor_state(dt)` | Async - Update encoder position/velocity |
+| `get_velocity()` | Async - Get motor velocity |
+| `get_position()` | Get motor position |
 
 ---
 

@@ -8,6 +8,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.8.0] - 2024-12-06
+
+### Added
+- Motor encoder velocity tracking in `MotionController`
+  - `motor_position` and `motor_velocity` state variables
+  - `update_motor_state(dt)` async method for encoder updates
+  - `get_velocity()` and `get_position()` methods
+- `motion_controller` parameter in `Location3D`/`Navigation3D` for motor-based velocity decay
+- `motor_velocity_threshold` parameter (default: 1.0 degrees/second)
+- Test fixtures system in `tests/fixtures/`
+  - `NavigationConfig` dataclass for navigation settings
+  - `MobilityConfig` dataclass for mobility settings
+  - `create_navigator()` and `create_motion_controller()` factory functions
+
+### Changed
+- `print_state()` now accepts `fields` array parameter for customizable output
+  - Options: `["all"]`, `["position", "velocity"]`, `["magnetic"]`, etc.
+- Velocity decay now triggers based on motor velocity threshold (if motion_controller provided)
+- Default `velocity_decay`: 0.02 → 0.04
+- Default `accel_threshold`: 0.1 → 0.05 m/s²
+- Refactored test files to use shared fixtures with configuration sections
+
+### Tests
+- Created `tests/fixtures/` module with shared configurations
+- `navigation_test.py` - navigation-only with configurable modes
+- `nav_mobility_test.py` - navigation + mobility with toggle flags
+- `navigation_display_test.py` - full visualization test with all toggles
+
+---
+
+## [0.7.1] - 2024-12-06
+
+### Added
+- Magnetic field gradient background in `NavigationDisplay`
+  - 0 µT = white (#FFFFFF), 400 µT = pure blue (#0000FF)
+  - Linear interpolation based on `magnetic_magnitude`
+- `magnetic_magnitude` tracking in display
+- Magnetic field info label in display panel
+
+### Changed
+- Minor grid lines (10cm) made much lighter (#101010)
+
+---
+
 ## [0.7.0] - 2024-12-05
 
 ### Added
