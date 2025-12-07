@@ -17,7 +17,6 @@ Classes:
 import asyncio
 import numpy as np
 import math
-from basehat import IMUSensor
 
 # Gravity constant (m/s^2)
 GRAVITY = 9.80235
@@ -127,7 +126,7 @@ class Location3D:
     Args:
         position (list): Initial position [x, y, z] in meters
         orientation (list): Initial orientation [yaw, pitch, roll] in degrees
-        imu (IMUSensor): IMU sensor instance for reading acceleration/gyro data
+        sensors (SensorInput): Centralized sensor manager for IMU data
         mode (str): Angle unit mode - "degrees" (default) or "radians"
     
     Attributes:
@@ -166,7 +165,7 @@ class Location3D:
         
         # Components
         self.transformer = Transformation3D(**kwargs)
-        self.imu = kwargs.get("imu", None)
+        self.sensors = kwargs.get("sensors", None)
         self.motion_controller = kwargs.get("motion_controller", None)
         self.initialized = False
     
@@ -184,7 +183,7 @@ class Location3D:
         samples = kwargs.get("samples", 50)
         delay = kwargs.get("delay", 0.02)
         
-        if self.imu is None:
+        if self.sensors is None or not self.sensors.has_imu():
             print("No IMU sensor provided.")
             return False
         
@@ -195,12 +194,12 @@ class Location3D:
         mag_sum = 0.0
         
         for i in range(samples):
-            ax, ay, az = self.imu.getAccel()
-            gx, gy, gz = self.imu.getGyro()
+            ax, ay, az = self.sensors.get_accel()
+            gx, gy, gz = self.sensors.get_gyro()
             
             accel_sum += np.array([ax, ay, az])
             gyro_sum += np.array([gz, gy, gx])  # yaw, pitch, roll order
-            mag_sum += await self.get_magnetic_field()
+            mag_sum += self.sensors.get_magnetic_magnitude()
             
             await asyncio.sleep(delay)
         
@@ -231,12 +230,12 @@ class Location3D:
         """
         dt = kwargs.get("dt", 0.1)
         
-        if self.imu is None:
+        if self.sensors is None or not self.sensors.has_imu():
             print("No IMU sensor provided.")
             return False
         
         # Get angular velocity from gyroscope (degrees/second)
-        d_roll, d_pitch, d_yaw = self.imu.getGyro()
+        d_roll, d_pitch, d_yaw = self.sensors.get_gyro()
         new_d_orientation = np.array([d_yaw, d_pitch, d_roll])
         
         # Subtract gyro bias if calibrated
@@ -274,7 +273,7 @@ class Location3D:
         dt = kwargs.get("dt", 0.1)
         display = kwargs.get("display", False)
         
-        if self.imu is None:
+        if self.sensors is None or not self.sensors.has_imu():
             print("No IMU sensor provided.")
             return False
         
@@ -306,7 +305,7 @@ class Location3D:
                 self.velocity *= (1.0 - self.velocity_decay)
         
         # NOW read new acceleration for next iteration
-        ax, ay, az = self.imu.getAccel()
+        ax, ay, az = self.sensors.get_accel()
         self.accel_local = np.array([ax, ay, az])
         
         # Subtract calibration bias if calibrated
@@ -378,10 +377,10 @@ class Navigation3D(Location3D):
         Returns:
             float: Magnitude of magnetic field in micro-tesla
         """
-        if self.imu is None:
+        if self.sensors is None or not self.sensors.has_imu():
             return 0.0
         
-        x_mag, y_mag, z_mag = self.imu.getMag()
+        x_mag, y_mag, z_mag = self.sensors.get_mag()
         self.magnetic_field = np.array([x_mag, y_mag, z_mag])
         self.magnetic_magnitude = np.linalg.norm(self.magnetic_field)
         
@@ -504,8 +503,10 @@ class Navigation3D(Location3D):
 
 if __name__ == "__main__":
     # Example usage
-    imu_sensor = IMUSensor()
-    navigator = Navigation3D(imu=imu_sensor, mode="degrees")
+    from systems.sensors import SensorInput
+    
+    sensors = SensorInput(imu=True)
+    navigator = Navigation3D(sensors=sensors, mode="degrees")
     
     async def main():
         await navigator.run_continuous_update(
