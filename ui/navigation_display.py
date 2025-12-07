@@ -4,13 +4,13 @@ navigation_display.py
 Visual display for rover navigation showing position, heading, and grade.
 
 This module provides a real-time visualization of the rover's position
-in the X-Y plane with heading arrow and navigation data from Navigation.
+in the X-Y plane with heading arrow and navigation data from State.
 """
 
 import tkinter as tk
 import math
 import asyncio
-from systems.navigation_system import Navigation
+from systems.state import State
 
 
 class NavigationDisplay:
@@ -32,7 +32,7 @@ class NavigationDisplay:
         world_min (float): Minimum world coordinate in meters (default: -10.0)
         world_max (float): Maximum world coordinate in meters (default: 10.0)
         title (str): Window title
-        navigator (Navigation): Navigation instance for data
+        state (State): State instance for data
     
     Controls:
         Mouse wheel / +/-: Zoom in/out
@@ -43,7 +43,7 @@ class NavigationDisplay:
         self.width = kwargs.get("width", 800)
         self.height = kwargs.get("height", 800)
         self.title = kwargs.get("title", "MACRO Navigation Display")
-        self.navigator = kwargs.get("navigator", None)
+        self.state = kwargs.get("state", None)
         
         # World bounds in meters (symmetric around origin)
         self.world_min = kwargs.get("world_min", -10.0)
@@ -350,18 +350,15 @@ class NavigationDisplay:
         if self.canvas:
             self._refresh()
     
-    def update_from_navigator(self):
-        """Update display from the Navigation instance."""
-        if self.navigator:
-            self.position = tuple(self.navigator.pos)
-            self.orientation = tuple(self.navigator.orientation)
-            self.velocity = tuple(self.navigator.velocity)
-            self.acceleration = tuple(self.navigator.acceleration)
-            self.magnetic_magnitude = self.navigator.magnetic_magnitude
-            
-            # Get motor velocity if motion controller available
-            if self.navigator.motion_controller is not None:
-                self.motor_velocity = self.navigator.motion_controller.motor_velocity
+    def update_from_state(self):
+        """Update display from the State instance."""
+        if self.state:
+            self.position = tuple(self.state.position)
+            self.orientation = tuple(self.state.orientation)
+            self.velocity = tuple(self.state.velocity)
+            self.acceleration = tuple(self.state.acceleration)
+            self.magnetic_magnitude = self.state.magnetic_field
+            self.motor_velocity = self.state.motor_velocity
             
             if self.canvas:
                 self._refresh()
@@ -465,7 +462,7 @@ class NavigationDisplay:
     
     async def run_continuous(self, **kwargs):
         """
-        Run continuous display update loop integrated with Navigation.
+        Run continuous display update loop from State.
         
         Args:
             update_interval (float): Update interval in seconds (default: 0.1)
@@ -476,8 +473,8 @@ class NavigationDisplay:
         
         try:
             while self.running:
-                # Update from navigator if available
-                self.update_from_navigator()
+                # Update from state if available
+                self.update_from_state()
                 
                 # Process GUI events
                 self.process_events()

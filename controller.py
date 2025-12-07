@@ -86,9 +86,17 @@ class NavigationConfig:
     
     # Update
     update_interval: float = 0.1
-    log_state: bool = True
     print_state: bool = False
     print_fields: List[str] = field(default_factory=lambda: ["all"])
+    
+    # Sensor offsets
+    imu_height: float = 0.015  # Height of IMU from ground in meters
+    color_sensor_height: float = 0.025  # Height of color sensor from ground in meters
+    lf_height: float = 0.025  # Height of left front distance sensor from ground in meters
+    lf_offset: float = 0.0225 # Horizontal offset of left front distance sensor from center in meters
+    imu_to_lf: float = 0.125 # Horizontal distance from IMU to front distance sensors in meters
+    imu_to_color: float = 0.11 # Horizontal distance from IMU to color sensor in meters
+    imu_to_cargo: float = 0.24 # Horizontal distance from IMU to cargo deploy location in meters
 
 
 @dataclass
@@ -195,9 +203,15 @@ def load_config(config_path: Optional[str] = None) -> Config:
             accel_threshold=n.get("drift_reduction", {}).get("accel_threshold", 0.05),
             motor_velocity_threshold=n.get("drift_reduction", {}).get("motor_velocity_threshold", 1.0),
             update_interval=n.get("update", {}).get("interval", 0.1),
-            log_state=n.get("update", {}).get("log_state", True),
             print_state=n.get("update", {}).get("print_state", False),
             print_fields=n.get("update", {}).get("print_fields", ["all"]),
+            imu_height=n.get("imu_height", 0.015),
+            color_sensor_height=n.get("color_sensor_height", 0.025),
+            lf_height=n.get("lf_height", 0.025),
+            lf_offset=n.get("lf_offset", 0.0225),
+            imu_to_lf=n.get("imu_to_lf", 0.125),
+            imu_to_color=n.get("imu_to_color", 0.11),
+            imu_to_cargo=n.get("imu_to_cargo", 0.24)
         )
     
     # Parse display section
@@ -294,6 +308,13 @@ class Controller:
             accel_threshold=nc.accel_threshold,
             motor_velocity_threshold=nc.motor_velocity_threshold,
             motion_controller=self.mobility,
+            imu_height=nc.imu_height,
+            color_sensor_height=nc.color_sensor_height,
+            lf_height=nc.lf_height,
+            lf_offset=nc.lf_offset,
+            imu_to_lf=nc.imu_to_lf,
+            imu_to_color=nc.imu_to_color,
+            imu_to_cargo=nc.imu_to_cargo,
         )
         
         # Calibrate if enabled
@@ -316,8 +337,8 @@ class Controller:
             while self._running:
                 await self.navigator.update_state(dt=nc.update_interval)
                 
-                if nc.log_state:
-                    self.navigator.log_state(asyncio.get_event_loop().time())
+                if nc.print_state:
+                    self.navigator.print_state(asyncio.get_event_loop().time())
                 
                 await asyncio.sleep(nc.update_interval)
         except KeyboardInterrupt:

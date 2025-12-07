@@ -16,6 +16,15 @@ line_finders = false
 button = false
 color_sensor = false
 
+# Physical mounting heights and offsets (meters)
+imu_height = 0.015  # Height of IMU from ground in meters
+color_sensor_height = 0.025  # Height of color sensor from ground in meters
+lf_height = 0.025  # Height of left front distance sensor from ground in meters
+lf_offset = 0.0225 # Horizontal offset of left front distance sensor from center in meters
+imu_to_lf = 0.125 # Horizontal distance from IMU to front distance sensors in meters
+imu_to_color = 0.11 # Horizontal distance from IMU to color sensor in meters
+imu_to_cargo = 0.24 # Horizontal distance from IMU to cargo deploy location in meters
+
 [sensors.pins]
 # GPIO pin assignments for Grove Base HAT sensors
 ultrasonic = 26
@@ -80,8 +89,6 @@ motor_velocity_threshold = 1.0
 [navigation.update]
 # Update interval in seconds
 interval = 0.1
-# Enable state logging
-log_state = true
 # Print state to console
 print_state = false
 # Fields to print: ["all"] or specific fields

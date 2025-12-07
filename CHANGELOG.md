@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2025-12-07
+
+### Added
+- `State` dataclass in `systems/state.py` for centralized state management
+- `sensor_positions` dict in `State` for tracking sensor locations (imu, lf_left, lf_right, color_sensor, cargo_deploy)
+- Sensor offset configuration parameters in `macro_config.toml`:
+  - `imu_height`, `color_sensor_height`, `lf_height`, `lf_offset`
+  - `imu_to_lf`, `imu_to_color`, `imu_to_cargo`
+
+### Changed
+- `Navigation` and `Location` classes now use `State` dataclass instead of instance variables
+- `NavigationDisplay` now pulls from `State` directly via `update_from_state()` method
+- `NavigationDisplay` runs independent update loop from Navigation class
+- `update_imu_position()` now updates IMU position in `sensor_positions["imu"]` and calculates ground position
+- `update_positions_from_imu()` calculates other sensor positions relative to ground position
+- `State` uses `field(default_factory=...)` for mutable numpy array defaults
+
+### Removed
+- Logging functionality from `Navigation` class (`log_state()` method, `log` attribute)
+- `log_state` configuration option from `NavigationConfig` and `macro_config.toml`
+- Duplicate `motor_velocity` field in `State` dataclass
+- Unused `dataclass` import from `systems/__init__.py`
+
+### Fixed
+- `State` dataclass now properly exports in `systems/__init__.py` via `__all__`
+- Orientation order comment corrected to (yaw, pitch, roll)
+
+---
+
 ## [0.10.1] - 2025-12-06
 
 ### Added

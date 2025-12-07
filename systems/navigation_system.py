@@ -17,6 +17,7 @@ Classes:
 import asyncio
 import numpy as np
 import math
+from systems.state import State
 
 # Gravity constant (m/s^2)
 GRAVITY = 9.80235
@@ -35,6 +36,16 @@ class Transformation:
     
     def __init__(self, **kwargs):
         self.mode = kwargs.get("mode", "degrees")
+
+        # Remove uninitialized instance variables and use State for sensor heights
+        self.state = State()
+        self.state.imu_height = kwargs.get("imu_height", 0.015)  # Height of IMU from ground in meters
+        self.state.color_sensor_height = kwargs.get("color_sensor_height", 0.025)  # Height of color sensor from ground in meters
+        self.state.lf_height = kwargs.get("lf_height", 0.025)  # Height of left front distance sensor from ground in meters
+        self.state.lf_offset = kwargs.get("lf_offset", 0.0225) # Horizontal offset of left front distance sensor from center in meters
+        self.state.imu_to_lf = kwargs.get("imu_to_lf", 0.125) # Horizontal distance from IMU to front distance sensors in meters
+        self.state.imu_to_color = kwargs.get("imu_to_color", 0.11) # Horizontal distance from IMU to color sensor in meters
+        self.state.imu_to_cargo = kwargs.get("imu_to_cargo", 0.24) # Horizontal distance from IMU to cargo deploy location in meters
 
     async def get_rotation_yaw(self, **kwargs):
         """Generate rotation matrix for yaw (Z-axis rotation)."""
@@ -137,25 +148,39 @@ class Location:
     """
     
     def __init__(self, **kwargs):
-        # Position state (global frame)
-        self.pos = np.array(kwargs.get("position", [0.0, 0.0, 0.0]))
-        self.velocity = np.array([0.0, 0.0, 0.0])
-        self.acceleration = np.array([0.0, 0.0, 0.0])
-        self.accel_local = np.array([0.0, 0.0, 0.0])
-        
-        # Orientation state [yaw, pitch, roll]
-        self.orientation = np.array(kwargs.get("orientation", [0.0, 0.0, 0.0]))
-        self.d_orientation = np.array([0.0, 0.0, 0.0])  # Angular velocity
-        self.a_orientation = np.array([0.0, 0.0, 0.0])  # Angular acceleration
-        
+        # Initialize State dataclass
+        self.state = State(
+            position=np.array(kwargs.get("position", [0.0, 0.0, 0.0])),
+            orientation=np.array(kwargs.get("orientation", [0.0, 0.0, 0.0])),
+            sensor_positions={
+                "imu": np.array([0.0, 0.0, 0.0]),
+                "lf_left": np.array([0.0, 0.0, 0.0]),
+                "lf_right": np.array([0.0, 0.0, 0.0]),
+                "color_sensor": np.array([0.0, 0.0, 0.0]),
+                "cargo_deploy": np.array([0.0, 0.0, 0.0])
+            }
+        )
+
+        # Previous state values for calculations
+        self.prev_position = self.state.position.copy()
+        self.prev_orientation = self.state.orientation.copy()
+
+        # Sensor position offsets
+        self.imu_to_ground = np.array([0.0, 0.0, -kwargs.get("imu_height", 0.015)])
+        self.ground_to_lf_left = np.array([kwargs.get("imu_to_lf", 0.125), kwargs.get("lf_offset", 0.0225), kwargs.get("lf_height", 0.025)])
+        self.ground_to_lf_right = np.array([kwargs.get("imu_to_lf", 0.125), -kwargs.get("lf_offset", 0.0225), kwargs.get("lf_height", 0.025)])
+        self.ground_to_color = np.array([-kwargs.get("imu_to_color", 0.11), 0.0, kwargs.get("color_sensor_height", 0.025)])
+        self.ground_to_cargo = np.array([-kwargs.get("imu_to_cargo", 0.24), 0.0, 0.0])
+
         # Calibration offsets (measured when stationary)
-        self.accel_bias = np.array([0.0, 0.0, 0.0])
-        self.gyro_bias = np.array([0.0, 0.0, 0.0])
-        self.mag_baseline = 0.0
-        self.calibrated = False
-        
+        self.state.bias = {
+            "accel": np.array([0.0, 0.0, 0.0]),
+            "gyro": np.array([0.0, 0.0, 0.0]),
+            "mag": 0.0
+        }
+
         # Velocity decay factor to reduce drift (0.0 = no decay, 1.0 = instant stop)
-        self.velocity_decay = kwargs.get("velocity_decay", 0.04)
+        self.velocity_decay = kwargs.get("velocity_decay", 0.4)
         
         # Threshold for considering acceleration as noise (m/s^2)
         self.accel_threshold = kwargs.get("accel_threshold", 0.05)
@@ -204,20 +229,20 @@ class Location:
             await asyncio.sleep(delay)
         
         # Average the readings
-        self.accel_bias = accel_sum / samples
-        self.gyro_bias = gyro_sum / samples
-        self.mag_baseline = mag_sum / samples
+        self.state.bias["accel"] = accel_sum / samples
+        self.state.bias["gyro"] = gyro_sum / samples
+        self.state.bias["mag"] = mag_sum / samples
         
         # The Z acceleration bias should preserve gravity
         # We want to measure what "zero" acceleration looks like in the local frame
         # When stationary and level, accel should read (0, 0, ~9.81)
         # So we store the full reading and subtract it later, then add back gravity in global frame
         
-        self.calibrated = True
+        self.state.calibrated = True
         print(f"Calibration complete.")
-        print(f"  Accel bias: {self.accel_bias}")
-        print(f"  Gyro bias: {self.gyro_bias}")
-        print(f"  Mag baseline: {self.mag_baseline:.2f} µT")
+        print(f"  Accel bias: {self.state.bias['accel']}")
+        print(f"  Gyro bias: {self.state.bias['gyro']}")
+        print(f"  Mag baseline: {self.state.bias['mag']:.2f} µT")
         
         return True
     
@@ -236,35 +261,37 @@ class Location:
         
         # Get angular velocity from gyroscope (degrees/second)
         d_roll, d_pitch, d_yaw = await self.sensors.get_gyro()
-        new_d_orientation = np.array([d_yaw, d_pitch, d_roll])
-        
+        angular_velocity = np.array([d_yaw, d_pitch, d_roll])
+
         # Subtract gyro bias if calibrated
-        if self.calibrated:
-            new_d_orientation -= self.gyro_bias
+        if self.state.calibrated:
+            angular_velocity -= self.state.bias["gyro"]
         
         if not self.initialized:
             # First iteration: initialize rates without calculating acceleration
-            self.d_orientation = new_d_orientation
+            self.state.angular_velocity = angular_velocity
             self.initialized = True
         else:
-            # Integrate orientation using trapezoidal approximation
-            self.orientation += 0.5 * self.a_orientation * (dt ** 2) + self.d_orientation * dt
-            self.a_orientation = (new_d_orientation - self.d_orientation) / dt
-            self.d_orientation = new_d_orientation
+            # Integrate orientation using previous angular velocity
+            self.state.orientation += 0.5 * self.state.angular_acceleration * (dt ** 2) + self.state.angular_velocity * dt
+            self.state.angular_acceleration = (angular_velocity - self.state.angular_velocity) / dt
+            self.state.angular_velocity = angular_velocity
         
         return True
     
-    async def update_position(self, **kwargs):
+    async def update_imu_position(self, **kwargs):
         """
-        Update position by integrating accelerometer data.
+        Update IMU position by integrating accelerometer data.
         
         Transforms local acceleration to global frame and subtracts gravity.
         Applies calibration bias and noise thresholding.
+        The ground position is then calculated from the IMU position.
         
         Uses proper integration order:
-        1. Update position using previous velocity and acceleration
+        1. Update IMU position using previous velocity and acceleration
         2. Update velocity using previous acceleration
         3. Calculate new acceleration for next iteration
+        4. Calculate ground position from IMU position
         
         Args:
             dt (float): Time step in seconds
@@ -278,19 +305,31 @@ class Location:
             return False
         
         # Store previous acceleration and velocity for integration
-        prev_acceleration = self.acceleration.copy()
-        prev_velocity = self.velocity.copy()
+        prev_acceleration = self.state.acceleration.copy()
+        prev_velocity = self.state.velocity.copy()
         
-        # Update position FIRST using previous velocity and acceleration
+        # Update IMU position FIRST using previous velocity and acceleration
         # p = p0 + v0*dt + 0.5*a0*dt^2
-        self.pos = await self.transformer.translate_vector(
-            vector=self.pos,
+        self.state.sensor_positions["imu"] = await self.transformer.translate_vector(
+            vector=self.state.sensor_positions["imu"],
             translation=prev_velocity * dt + 0.5 * prev_acceleration * (dt ** 2)
+        )
+        
+        # Calculate ground position from IMU position
+        self.state.position = await self.transformer.translate_vector(
+            vector=self.state.sensor_positions["imu"],
+            translation=await self.transformer.rotate_vector(
+                vector=self.imu_to_ground,
+                yaw=self.state.orientation[0],
+                pitch=self.state.orientation[1],
+                roll=self.state.orientation[2],
+                invert=False
+            )
         )
         
         # Update velocity SECOND using previous acceleration
         # v = v0 + a0*dt
-        self.velocity = await self.transformer.translate_vector(
+        self.state.velocity = await self.transformer.translate_vector(
             vector=prev_velocity,
             translation=prev_acceleration * dt
         )
@@ -298,31 +337,31 @@ class Location:
         # Apply velocity decay to reduce drift when motor is near stationary
         if self.motion_controller is not None:
             if abs(self.motion_controller.motor_velocity) < self.motor_velocity_threshold:
-                self.velocity *= (1.0 - self.velocity_decay)
+                self.state.velocity *= (1.0 - self.velocity_decay)
         else:
             # Fallback to acceleration threshold if no motion controller
             if np.linalg.norm(prev_acceleration) < self.accel_threshold:
-                self.velocity *= (1.0 - self.velocity_decay)
+                self.state.velocity *= (1.0 - self.velocity_decay)
         
         # NOW read new acceleration for next iteration
         ax, ay, az = await self.sensors.get_accel()
-        self.accel_local = np.array([ax, ay, az])
+        accel_local = np.array([ax, ay, az])
         
         # Subtract calibration bias if calibrated
-        if self.calibrated:
-            self.accel_local -= self.accel_bias
+        if self.state.calibrated:
+            accel_local -= self.state.bias["accel"]
         
         # Transform local acceleration to global frame
         accel_global = await self.transformer.rotate_vector(
-            vector=self.accel_local,
-            yaw=self.orientation[0],
-            pitch=self.orientation[1],
-            roll=self.orientation[2],
+            vector=accel_local,
+            yaw=self.state.orientation[0],
+            pitch=self.state.orientation[1],
+            roll=self.state.orientation[2],
             invert=True
         )
         
         # If not calibrated, remove gravity (calibrated bias already includes gravity)
-        if not self.calibrated:
+        if not self.state.calibrated:
             accel_global -= np.array([0.0, 0.0, GRAVITY])
         
         # Apply noise threshold - treat small accelerations as zero
@@ -331,13 +370,78 @@ class Location:
                 accel_global[i] = 0.0
         
         # Store new acceleration for next iteration
-        self.acceleration = accel_global
+        self.state.acceleration = accel_global
         
         if display:
-            print(f"Position: {self.pos}, Velocity: {self.velocity}, Acceleration: {self.acceleration}")
+            print(f"Position: {self.state.position}, Velocity: {self.state.velocity}, Acceleration: {self.state.acceleration}")
         
         return True
     
+    async def update_positions_from_imu(self, **kwargs):
+        """
+        Update all sensor positions relative to the ground position.
+        Ground position is already calculated in update_imu_position.
+        """
+        self.state.sensor_positions["lf_left"] = await self.transformer.translate_vector(
+            vector=self.state.position,
+            translation=await self.transformer.rotate_vector(
+                vector=self.ground_to_lf_left,
+                yaw=self.state.orientation[0],
+                pitch=self.state.orientation[1],
+                roll=self.state.orientation[2],
+                invert=False
+            )
+        )
+
+        self.state.sensor_positions["lf_right"] = await self.transformer.translate_vector(
+            vector=self.state.position,
+            translation=await self.transformer.rotate_vector(
+                vector=self.ground_to_lf_right,
+                yaw=self.state.orientation[0],
+                pitch=self.state.orientation[1],
+                roll=self.state.orientation[2],
+                invert=False
+            )
+        )
+
+        self.state.sensor_positions["color_sensor"] = await self.transformer.translate_vector(
+            vector=self.state.position,
+            translation=await self.transformer.rotate_vector(
+                vector=self.ground_to_color,
+                yaw=self.state.orientation[0],
+                pitch=self.state.orientation[1],
+                roll=self.state.orientation[2],
+                invert=False
+            )
+        )
+
+        self.state.sensor_positions["cargo_deploy"] = await self.transformer.translate_vector(
+            vector=self.state.position,
+            translation=await self.transformer.rotate_vector(
+                vector=self.ground_to_cargo,
+                yaw=self.state.orientation[0],
+                pitch=self.state.orientation[1],
+                roll=self.state.orientation[2],
+                invert=False
+            )
+        )
+
+    async def update_position(self, **kwargs):
+        """
+        Update position by integrating IMU data.
+        
+        Args:
+            dt (float): Time step in seconds
+            display (bool): Print position data if True
+        """
+        dt = kwargs.get("dt", 0.1)
+        display = kwargs.get("display", False)
+        
+        await self.update_imu_position(dt=dt, display=display)
+        await self.update_positions_from_imu()
+        
+        return True
+
     def get_position(self):
         """
         Get the current position as a tuple.
@@ -345,30 +449,50 @@ class Location:
         Returns:
             tuple: Current position (x, y, z) in meters
         """
-        return tuple(self.pos)
+        return tuple(self.state.position)
+
+    async def update(self, dt):
+        """
+        Update the location state based on sensor data.
+
+        Args:
+            dt (float): Time step in seconds.
+        """
+        if self.sensors and self.sensors.has_imu():
+            imu_data = self.sensors.get_imu_data()
+            self.state.acceleration_raw = imu_data["acceleration"]
+            self.state.angular_velocity = imu_data["angular_velocity"]
+
+            # Apply calibration bias
+            self.state.acceleration = self.state.acceleration_raw - self.state.bias["accel"]
+
+            # Integrate acceleration to update velocity and position
+            self.state.velocity = (1 - self.velocity_decay) * (self.state.velocity + self.state.acceleration * dt)
+            self.state.position += self.state.velocity * dt
+
+            # Update orientation using angular velocity
+            self.state.orientation += self.state.angular_velocity * dt
+
+            # Apply thresholds to filter noise
+            if np.linalg.norm(self.state.acceleration) < self.accel_threshold:
+                self.state.acceleration = np.zeros(3)
+
+            if np.linalg.norm(self.state.velocity) < self.motor_velocity_threshold:
+                self.state.velocity = np.zeros(3)
 
 
 class Navigation(Location):
     """
-    3D navigation system with logging capabilities.
+    3D navigation system.
     
-    Extends Location to add timestamped logging of position, velocity,
-    orientation, and acceleration data.
+    Extends Location to add magnetic field tracking and state updates.
     
     Args:
         Inherits all arguments from Location
-    
-    Attributes:
-        log: List of logged navigation data entries
-        start_time: Timestamp when navigation started
     """
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.log = []
-        self.start_time = None
-        self.magnetic_field = np.array([0.0, 0.0, 0.0])
-        self.magnetic_magnitude = 0.0
     
     async def get_magnetic_field(self):
         """
@@ -381,10 +505,9 @@ class Navigation(Location):
             return 0.0
         
         x_mag, y_mag, z_mag = await self.sensors.get_mag()
-        self.magnetic_field = np.array([x_mag, y_mag, z_mag])
-        self.magnetic_magnitude = np.linalg.norm(self.magnetic_field)
+        self.state.magnetic_field = np.linalg.norm(np.array([x_mag, y_mag, z_mag]))
         
-        return self.magnetic_magnitude
+        return self.state.magnetic_field
     
     async def update_state(self, **kwargs):
         """
@@ -394,27 +517,18 @@ class Navigation(Location):
             dt (float): Time step in seconds (default: 0.1)
         """
         dt = kwargs.get("dt", 0.1)
-        
-        await self.update_position(dt=dt)
-        await self.update_orientation(dt=dt)
-        await self.get_magnetic_field()
-    
-    def log_state(self, timestamp):
-        """
-        Log the current navigation state with timestamp.
-        
-        Args:
-            timestamp (float): Current timestamp in seconds since start
-        """
-        entry = {
-            "timestamp": timestamp,
-            "position": self.pos.copy(),
-            "velocity": self.velocity.copy(),
-            "acceleration": self.acceleration.copy(),
-            "orientation": self.orientation.copy(),
-            "magnetic_magnitude": self.magnetic_magnitude
-        }
-        self.log.append(entry)
+
+        # Update previous state values
+        self.prev_position = self.state.position.copy()
+        self.prev_orientation = self.state.orientation.copy()
+
+        # Update current state
+        self.state.position = await self.update_position(dt=dt)
+        self.state.orientation = await self.update_orientation(dt=dt)
+        self.state.magnetic_field = await self.get_magnetic_field()
+
+        # Update previous values in instance variables
+        self.prev_magnetic_field = self.state.magnetic_field
     
     def print_state(self, timestamp, fields=None):
         """
@@ -422,7 +536,7 @@ class Navigation(Location):
         
         Args:
             timestamp (float): Current timestamp in seconds since start
-            fields (list): List of fields to show. Options: "position", "velocity", 
+            fields (list): List of fields to show. Options: "position", "velocity",
                           "acceleration", "orientation", "magnetic".
                           Use ["all"] for all fields, [] or None for nothing.
                           Default: ["all"]
@@ -438,34 +552,33 @@ class Navigation(Location):
         parts = [f"[{timestamp:.3f}s]"]
         
         if show_all or "position" in fields:
-            position = tuple(round(p, 3) for p in self.pos)
+            position = tuple(round(p, 3) for p in self.state.position)
             parts.append(f"Pos: {position}")
         
         if show_all or "velocity" in fields:
-            velocity = tuple(round(v, 3) for v in self.velocity)
+            velocity = tuple(round(v, 3) for v in self.state.velocity)
             parts.append(f"Vel: {velocity}")
         
         if show_all or "acceleration" in fields:
-            acceleration = tuple(round(a, 3) for a in self.acceleration)
+            acceleration = tuple(round(a, 3) for a in self.state.acceleration)
             parts.append(f"Acc: {acceleration}")
         
         if show_all or "orientation" in fields:
-            orientation = tuple(round(o, 2) for o in self.orientation)
+            orientation = tuple(round(o, 2) for o in self.state.orientation)
             parts.append(f"Orient: {orientation}")
         
         if show_all or "magnetic" in fields:
-            parts.append(f"Mag: {self.magnetic_magnitude:.2f} µT")
+            parts.append(f"Mag: {self.state.magnetic_field:.2f} µT")
         
         if len(parts) > 1:
             print(", ".join(parts))
     
     async def run_continuous_update(self, **kwargs):
         """
-        Continuously update position at a fixed interval with optional logging and printing.
+        Continuously update position at a fixed interval.
         
         Args:
             update_interval (float): Update interval in seconds (default: 0.1)
-            log_state (bool): Whether to log state each iteration (default: True)
             print_state (bool): Whether to print state each iteration (default: False)
             calibrate (bool): Whether to calibrate IMU before starting (default: True)
             calibration_samples (int): Number of calibration samples (default: 50)
@@ -473,29 +586,22 @@ class Navigation(Location):
         import time
         
         update_interval = kwargs.get("update_interval", 0.1)
-        log_state_enabled = kwargs.get("log_state", True)
         print_state_enabled = kwargs.get("print_state", False)
         do_calibrate = kwargs.get("calibrate", True)
         calibration_samples = kwargs.get("calibration_samples", 50)
         
         # Calibrate IMU if requested
-        if do_calibrate and not self.calibrated:
+        if do_calibrate and not self.state.calibrated:
             await self.calibrate(samples=calibration_samples)
         
-        self.start_time = time.time()
+        start_time = time.time()
         
         while True:
             await self.update_state(dt=update_interval)
             
-            # Get current timestamp
-            timestamp = time.time() - self.start_time
-            
-            # Log current state if enabled
-            if log_state_enabled:
-                self.log_state(timestamp)
-            
             # Print current state if enabled
             if print_state_enabled:
+                timestamp = time.time() - start_time
                 self.print_state(timestamp)
             
             await asyncio.sleep(update_interval)
@@ -511,7 +617,6 @@ if __name__ == "__main__":
     async def main():
         await navigator.run_continuous_update(
             update_interval=0.1,
-            log_state=True,
             print_state=True,
             calibrate=True
         )
@@ -519,4 +624,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print(f"Stopping navigation. Logged {len(navigator.log)} entries across {navigator.log[-1]['timestamp']:.2f} seconds.")
+        print("Stopping navigation.")

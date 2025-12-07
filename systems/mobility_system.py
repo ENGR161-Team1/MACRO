@@ -1,7 +1,7 @@
 import asyncio
 import time
 from buildhat import Motor
-
+from .state import State
 
 class MotionController:
     """
@@ -33,13 +33,10 @@ class MotionController:
         self.forward_speed_slow = kwargs.get("forward_speed_slow", 10)
         
         # State tracking
-        self.moving = True
+        self.moving = False
         self.current_speed = self.forward_speed
-        
-        # Motor encoder state
-        self.motor_position = 0.0  # degrees
-        self.motor_velocity = 0.0  # degrees per second
-        self._prev_position = 0.0  # for velocity calculation
+
+        self.state = State()
 
     def start(self, speed=None):
         if speed is None:
@@ -65,6 +62,7 @@ class MotionController:
         return await self.sensors.get_distance()
 
     async def start_safety_ring(self):
+        self.moving = True
         while True:
             dist = await self.get_distance()
             
@@ -101,35 +99,11 @@ class MotionController:
         self.front_motor.start(self.forward_speed)
         await self.start_safety_ring()
 
-    async def update_motor_state(self, dt=0.1):
-        """
-        Update motor position and velocity from the encoder.
+    async def update_motor_state(self):
+        """Update motor encoder state."""
+        self.state.motor_position = self.front_motor.get_position()
+        self.state.motor_velocity = self.front_motor.get_velocity()
         
-        Args:
-            dt (float): Time step in seconds (default: 0.1)
-        """
-        self.motor_position = self.front_motor.get_position()
-        
-        if dt > 0:
-            self.motor_velocity = (self.motor_position - self._prev_position) / dt
-        
-        self._prev_position = self.motor_position
 
-    async def get_velocity(self):
-        """
-        Get the current motor velocity.
         
-        Returns:
-            float: Motor velocity in degrees per second
-        """
-        return self.motor_velocity
-
-    def get_position(self):
-        """
-        Get the current motor position.
-        
-        Returns:
-            float: Motor position in degrees
-        """
-        return self.motor_position
 
