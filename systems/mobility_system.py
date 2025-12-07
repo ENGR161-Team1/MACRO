@@ -53,7 +53,7 @@ class MotionController:
         self.turn_motor.stop()
         self.moving = False
 
-    def get_distance(self):
+    async def get_distance(self) -> float:
         """
         Get distance from ultrasonic sensor via SensorInput.
         
@@ -62,11 +62,11 @@ class MotionController:
         """
         if self.sensors is None or not self.sensors.has_ultrasonic():
             return 30.0  # Default safe distance
-        return self.sensors.get_distance()
+        return await self.sensors.get_distance()
 
     async def start_safety_ring(self):
         while True:
-            dist = self.get_distance()
+            dist = await self.get_distance()
             
             if dist < self.stopping_distance:
                 if self.moving:

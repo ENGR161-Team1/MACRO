@@ -98,7 +98,7 @@ class SensorInput:
     # IMU Methods
     # -------------------------------------------------------------------------
     
-    def get_accel(self):
+    async def get_accel(self):
         """
         Get acceleration from IMU.
         
@@ -111,7 +111,7 @@ class SensorInput:
         self._accel = np.array(self.imu.getAccel())
         return tuple(self._accel)
     
-    def get_gyro(self):
+    async def get_gyro(self):
         """
         Get angular velocity from IMU.
         
@@ -124,7 +124,7 @@ class SensorInput:
         self._gyro = np.array(self.imu.getGyro())
         return tuple(self._gyro)
     
-    def get_mag(self):
+    async def get_mag(self):
         """
         Get magnetic field from IMU.
         
@@ -137,7 +137,7 @@ class SensorInput:
         self._mag = np.array(self.imu.getMag())
         return tuple(self._mag)
     
-    def get_magnetic_magnitude(self):
+    async def get_magnetic_magnitude(self):
         """
         Get magnetic field magnitude.
         
@@ -154,7 +154,7 @@ class SensorInput:
     # Ultrasonic Methods
     # -------------------------------------------------------------------------
     
-    def get_distance(self):
+    async def get_distance(self):
         """
         Get distance from ultrasonic sensor.
         
@@ -175,7 +175,7 @@ class SensorInput:
     # Button Methods
     # -------------------------------------------------------------------------
     
-    def is_button_pressed(self):
+    async def is_button_pressed(self):
         """
         Check if button is pressed.
         
@@ -191,7 +191,7 @@ class SensorInput:
     # Color Sensor Methods
     # -------------------------------------------------------------------------
     
-    def get_color(self):
+    async def get_color(self):
         """
         Get detected color name from color sensor.
         
@@ -206,7 +206,7 @@ class SensorInput:
         except:
             return "none"
     
-    def is_black(self):
+    async def is_black(self):
         """
         Check if color sensor detects black.
         
@@ -249,7 +249,7 @@ class SensorInput:
     # Line Finder Methods
     # -------------------------------------------------------------------------
     
-    def get_line_left(self):
+    async def get_line_left(self):
         """
         Get left line finder reading.
         
@@ -261,7 +261,7 @@ class SensorInput:
         
         return self.line_finder_left.value
     
-    def get_line_right(self):
+    async def get_line_right(self):
         """
         Get right line finder reading.
         
