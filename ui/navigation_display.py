@@ -4,13 +4,13 @@ navigation_display.py
 Visual display for rover navigation showing position, heading, and grade.
 
 This module provides a real-time visualization of the rover's position
-in the X-Y plane with heading arrow and navigation data from Navigation3D.
+in the X-Y plane with heading arrow and navigation data from Navigation.
 """
 
 import tkinter as tk
 import math
 import asyncio
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 
 
 class NavigationDisplay:
@@ -32,7 +32,7 @@ class NavigationDisplay:
         world_min (float): Minimum world coordinate in meters (default: -10.0)
         world_max (float): Maximum world coordinate in meters (default: 10.0)
         title (str): Window title
-        navigator (Navigation3D): Navigation3D instance for data
+        navigator (Navigation): Navigation instance for data
     
     Controls:
         Mouse wheel / +/-: Zoom in/out
@@ -351,7 +351,7 @@ class NavigationDisplay:
             self._refresh()
     
     def update_from_navigator(self):
-        """Update display from the Navigation3D instance."""
+        """Update display from the Navigation instance."""
         if self.navigator:
             self.position = tuple(self.navigator.pos)
             self.orientation = tuple(self.navigator.orientation)
@@ -465,7 +465,7 @@ class NavigationDisplay:
     
     async def run_continuous(self, **kwargs):
         """
-        Run continuous display update loop integrated with Navigation3D.
+        Run continuous display update loop integrated with Navigation.
         
         Args:
             update_interval (float): Update interval in seconds (default: 0.1)

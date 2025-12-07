@@ -117,14 +117,14 @@ async def simulate_movement():
 """Test module description."""
 
 import asyncio
-from systems import Navigation3D, MotionController
+from systems import Navigation, MotionController
 from ui import NavigationDisplay
 
 
 async def run_test():
     """Main test coroutine."""
     # Initialize systems
-    nav = Navigation3D()
+    nav = Navigation()
     motion = MotionController()
     
     # Create display
@@ -237,7 +237,7 @@ motor = Motor("A")
 motor.run_for_degrees(45)
 
 # Finally: Test together
-nav = Navigation3D(motor_controller=motion)
+nav = Navigation(motor_controller=motion)
 ```
 
 ### 4. Use Display for Debugging

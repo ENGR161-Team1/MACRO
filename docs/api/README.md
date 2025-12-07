@@ -20,14 +20,14 @@
 ### Navigation System
 
 ```python
-from systems.navigation_system import Transformation3D, Location3D, Navigation3D
+from systems.navigation_system import Transformation, Location, Navigation
 ```
 
 | Class | Purpose |
 |-------|---------|
-| `Transformation3D` | 3D rotation and translation matrices |
-| `Location3D` | Position tracking with IMU |
-| `Navigation3D` | Full navigation with logging and magnetic field |
+| `Transformation` | 3D rotation and translation matrices |
+| `Location` | Position tracking with IMU |
+| `Navigation` | Full navigation with logging and magnetic field |
 
 ### Mobility System
 
@@ -71,10 +71,10 @@ from basehat import IMUSensor, UltrasonicSensor, LineFinder, HallSensor, Button
 
 ```python
 import asyncio
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from basehat import IMUSensor
 
-navigator = Navigation3D(imu=IMUSensor())
+navigator = Navigation(imu=IMUSensor())
 
 async def main():
     await navigator.calibrate(samples=50)
@@ -106,11 +106,11 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from ui.navigation_display import NavigationDisplay
 from basehat import IMUSensor
 
-navigator = Navigation3D(imu=IMUSensor())
+navigator = Navigation(imu=IMUSensor())
 display = NavigationDisplay(navigator=navigator)
 
 async def main():

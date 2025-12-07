@@ -1,7 +1,7 @@
 """
 nav_mobility_test.py
 
-Mobility test with integrated Navigation3D position tracking.
+Mobility test with integrated Navigation position tracking.
 
 This combines the safety ring obstacle avoidance from MotionController
 with real-time navigation tracking using the IMU sensor.

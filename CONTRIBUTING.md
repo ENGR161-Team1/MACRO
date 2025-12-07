@@ -55,7 +55,7 @@ Types:
 ## File Naming
 
 - Use `snake_case` for Python files (e.g., `navigation_system.py`)
-- Use `PascalCase` for class names (e.g., `Location3D`)
+- Use `PascalCase` for class names (e.g., `Location`)
 - Keep module names descriptive and concise
 
 ## Testing

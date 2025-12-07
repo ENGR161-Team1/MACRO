@@ -3,19 +3,19 @@
 > 3D position and orientation tracking with IMU integration
 
 ```python
-from systems.navigation_system import Transformation3D, Location3D, Navigation3D
+from systems.navigation_system import Transformation, Location, Navigation
 ```
 
 ---
 
-## Transformation3D
+## Transformation
 
 3D rotation and translation matrix utilities.
 
 ### Constructor
 
 ```python
-transformer = Transformation3D(mode="degrees")  # or "radians"
+transformer = Transformation(mode="degrees")  # or "radians"
 ```
 
 | Parameter | Type | Default | Description |
@@ -130,11 +130,11 @@ translated = transformer.translate_vector(
 
 ---
 
-## Location3D
+## Location
 
 3D position tracking using IMU sensor data with dead reckoning.
 
-**Inherits from:** `Transformation3D`
+**Inherits from:** `Transformation`
 
 ### Constructor
 
@@ -145,7 +145,7 @@ from systems.mobility_system import MotionController
 sensors = SensorInput()
 motion = MotionController(front_motor="A", turn_motor="B", sensors=sensors)
 
-tracker = Location3D(
+tracker = Location(
     sensors=sensors,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
@@ -236,16 +236,16 @@ await tracker.update_position(dt=0.1)
 
 ---
 
-## Navigation3D
+## Navigation
 
 Full 3D navigation system with logging and magnetic field sensing.
 
-**Inherits from:** `Location3D`
+**Inherits from:** `Location`
 
 ### Constructor
 
 ```python
-navigator = Navigation3D(
+navigator = Navigation(
     sensors=sensors,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
@@ -257,7 +257,7 @@ navigator = Navigation3D(
 )
 ```
 
-*Same parameters as Location3D*
+*Same parameters as Location*
 
 ### Additional Attributes
 
@@ -376,11 +376,11 @@ await navigator.run_continuous_update(
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 
 async def main():
     imu = IMUSensor()
-    nav = Navigation3D(imu=imu)
+    nav = Navigation(imu=imu)
     
     await nav.calibrate(samples=50)
     
@@ -397,14 +397,14 @@ asyncio.run(main())
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from systems.mobility_system import MotionController
 
 async def main():
     imu = IMUSensor()
     motion = MotionController(front_motor="A", turn_motor="B")
     
-    nav = Navigation3D(
+    nav = Navigation(
         imu=imu,
         motion_controller=motion,
         motor_velocity_threshold=1.0

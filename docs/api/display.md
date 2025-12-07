@@ -32,7 +32,7 @@ display = NavigationDisplay(
 | `world_min` | float | -10.0 | Minimum world coordinate (meters) |
 | `world_max` | float | 10.0 | Maximum world coordinate (meters) |
 | `title` | str | "MACRO Navigation Display" | Window title |
-| `navigator` | Navigation3D | None | Navigation instance for auto-updates |
+| `navigator` | Navigation | None | Navigation instance for auto-updates |
 
 ### Attributes
 
@@ -49,7 +49,7 @@ display = NavigationDisplay(
 | `acceleration` | tuple | Current acceleration (ax, ay, az) |
 | `magnetic_magnitude` | float | Magnetic field magnitude (µT) |
 | `motor_velocity` | float | Motor velocity (°/s) |
-| `navigator` | Navigation3D | Linked navigation instance |
+| `navigator` | Navigation | Linked navigation instance |
 | `running` | bool | Whether display is active |
 
 ---
@@ -114,7 +114,7 @@ display.update(
 
 ### `update_from_navigator()`
 
-Update display from linked Navigation3D instance.
+Update display from linked Navigation instance.
 
 ```python
 display.update_from_navigator()
@@ -248,11 +248,11 @@ display.process_events()
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from ui.navigation_display import NavigationDisplay
 
 imu = IMUSensor()
-navigator = Navigation3D(imu=imu)
+navigator = Navigation(imu=imu)
 display = NavigationDisplay(navigator=navigator)
 
 async def main():

@@ -24,7 +24,7 @@
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from systems.mobility_system import MotionController
 
 # Initialize hardware
@@ -32,7 +32,7 @@ imu = IMUSensor()
 motion = MotionController(front_motor="A", turn_motor="B")
 
 # Create navigator with motor-based velocity decay
-navigator = Navigation3D(
+navigator = Navigation(
     imu=imu,
     mode="degrees",
     motion_controller=motion,
@@ -77,7 +77,7 @@ MACRO/
 │   └── color.py                # Color sensor
 │
 ├── systems/                    # Core systems
-│   ├── navigation_system.py    # 3D navigation (Transformation3D, Location3D, Navigation3D)
+│   ├── navigation_system.py    # 3D navigation (Transformation, Location, Navigation)
 │   ├── mobility_system.py      # Motor control (MotionController)
 │   ├── sensors.py              # Sensor abstraction
 │   ├── task_manager.py         # Task scheduling
@@ -125,7 +125,7 @@ MACRO/
 
 | Module | Classes | Description |
 |--------|---------|-------------|
-| `navigation_system` | `Transformation3D`, `Location3D`, `Navigation3D` | 3D position and orientation tracking |
+| `navigation_system` | `Transformation`, `Location`, `Navigation` | 3D position and orientation tracking |
 | `mobility_system` | `MotionController` | Motor control with safety features |
 | `navigation_display` | `NavigationDisplay` | Real-time visualization |
 

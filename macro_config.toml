@@ -1,0 +1,127 @@
+# MACRO Configuration File
+# Mars Autonomous Cargo Rover Operations
+#
+# This file contains all configuration parameters for MACRO systems.
+# The controller.py reads this file and initializes all modules.
+
+# =============================================================================
+# SENSORS
+# =============================================================================
+
+[sensors]
+# Enable/disable individual sensors
+imu = true
+ultrasonic = true
+line_finders = false
+button = false
+color_sensor = false
+
+[sensors.pins]
+# GPIO pin assignments for Grove Base HAT sensors
+ultrasonic = 26
+line_finder_left = 16
+line_finder_right = 5
+button = 22
+
+[sensors.ports]
+# Build HAT port assignments
+color_sensor = "D"
+
+# =============================================================================
+# MOBILITY
+# =============================================================================
+
+[mobility]
+# Motor port assignments (Build HAT ports: A, B, C, D)
+front_motor = "A"
+turn_motor = "B"
+
+[mobility.speed]
+# Speed settings (range: -100 to 100)
+forward = 20
+forward_slow = 10
+reverse = -20
+
+[mobility.safety]
+# Distance thresholds in centimeters
+slowdown_distance = 30.0
+stopping_distance = 15.0
+
+# =============================================================================
+# NAVIGATION
+# =============================================================================
+
+[navigation]
+# Angle unit mode: "degrees" or "radians"
+mode = "degrees"
+
+[navigation.initial]
+# Initial position [x, y, z] in meters
+position = [0.0, 0.0, 0.0]
+# Initial orientation [yaw, pitch, roll] in degrees
+orientation = [0.0, 0.0, 0.0]
+
+[navigation.calibration]
+# Enable IMU calibration on startup
+enabled = true
+# Number of samples for calibration averaging
+samples = 50
+# Delay between samples in seconds
+delay = 0.02
+
+[navigation.drift_reduction]
+# Velocity decay factor (0.0 = no decay, 1.0 = instant stop)
+velocity_decay = 0.04
+# Acceleration noise threshold in m/s²
+accel_threshold = 0.05
+# Motor velocity threshold for decay in degrees/second
+motor_velocity_threshold = 1.0
+
+[navigation.update]
+# Update interval in seconds
+interval = 0.1
+# Enable state logging
+log_state = true
+# Print state to console
+print_state = false
+# Fields to print: ["all"] or specific fields
+print_fields = ["all"]
+
+# =============================================================================
+# DISPLAY
+# =============================================================================
+
+[display]
+# Enable display system
+enabled = true
+# Update interval in milliseconds
+update_interval = 100
+
+[display.window]
+# Window dimensions
+width = 800
+height = 600
+title = "MACRO Control Panel"
+
+[display.colors]
+# UI color scheme
+background = "#1a1a2e"
+foreground = "#eaeaea"
+accent = "#e94560"
+success = "#4ecca3"
+warning = "#ffc107"
+
+# =============================================================================
+# TESTING
+# =============================================================================
+
+[testing]
+# Test-specific overrides
+mock_hardware = false
+verbose = true
+
+[testing.timeouts]
+# Test timeout values in seconds
+calibration = 5.0
+navigation_update = 1.0
+motor_response = 2.0

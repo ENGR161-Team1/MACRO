@@ -156,7 +156,7 @@ motor.run_for_degrees(target - current_pos)
 
 2. **Adjust velocity decay:**
    ```python
-   navigator = Navigation3D(
+   navigator = Navigation(
        velocity_decay=0.06,  # Higher = faster decay
        motor_velocity_threshold=0.5
    )
@@ -164,7 +164,7 @@ motor.run_for_degrees(target - current_pos)
 
 3. **Use motor velocity tracking:**
    ```python
-   navigator = Navigation3D(
+   navigator = Navigation(
        motion_controller=motion,
        motor_velocity_threshold=1.0
    )

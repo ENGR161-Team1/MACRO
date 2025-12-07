@@ -296,14 +296,14 @@ asyncio.run(main())
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from systems.mobility_system import MotionController
 
 async def main():
     imu = IMUSensor()
     motion = MotionController(front_motor="A", turn_motor="B")
     
-    navigator = Navigation3D(
+    navigator = Navigation(
         imu=imu,
         motion_controller=motion,
         motor_velocity_threshold=1.0

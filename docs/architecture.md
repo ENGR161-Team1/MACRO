@@ -19,7 +19,7 @@
 │         │                   │                   │                │
 │         ▼                   ▼                   ▼                │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
-│  │  IMUSensor   │    │ Navigation3D │    │NavigationDisp│       │
+│  │  IMUSensor   │    │ Navigation │    │NavigationDisp│       │
 │  │  Ultrasonic  │    │MotionControl │    │              │       │
 │  │  LineFinder  │    │              │    │              │       │
 │  └──────────────┘    └──────────────┘    └──────────────┘       │
@@ -65,7 +65,7 @@ Core business logic and algorithms.
 
 | Module | Classes | Purpose |
 |--------|---------|---------|
-| `navigation_system.py` | `Transformation3D`, `Location3D`, `Navigation3D` | 3D position tracking |
+| `navigation_system.py` | `Transformation`, `Location`, `Navigation` | 3D position tracking |
 | `mobility_system.py` | `MotionController` | Motor control with safety |
 | `sensors.py` | Various | Sensor abstraction |
 | `task_manager.py` | `TaskManager` | Task scheduling |
@@ -180,15 +180,15 @@ front_motor    turn_motor
 ### Navigation System
 
 ```
-Transformation3D
+Transformation
        │
        │ (composition)
        ▼
-  Location3D
+  Location
        │
        │ (inheritance)
        ▼
-  Navigation3D ◀───── MotionController (optional)
+  Navigation ◀───── MotionController (optional)
        │
        │ (composition)
        ▼
@@ -200,15 +200,15 @@ Transformation3D
 ```python
 # navigation_system.py
 
-class Transformation3D:
+class Transformation:
     """3D rotation and translation utilities"""
     pass
 
-class Location3D(Transformation3D):
+class Location(Transformation):
     """Position tracking with IMU"""
     pass
 
-class Navigation3D(Location3D):
+class Navigation(Location):
     """Full navigation with logging and magnetic field"""
     pass
 ```
@@ -269,8 +269,8 @@ class MobilityConfig:
 
 ```python
 def create_navigator(config, motion_controller=None):
-    """Create Navigation3D from config."""
-    return Navigation3D(
+    """Create Navigation from config."""
+    return Navigation(
         imu=IMUSensor(),
         velocity_decay=config.velocity_decay,
         motion_controller=motion_controller

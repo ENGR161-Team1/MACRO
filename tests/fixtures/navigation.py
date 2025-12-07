@@ -1,7 +1,7 @@
 """
 Navigation fixture for MACRO tests.
 
-Provides configurable Navigation3D setup.
+Provides configurable Navigation setup.
 """
 
 import sys
@@ -10,13 +10,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dataclasses import dataclass, field
 from typing import List, Optional
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from systems.sensors import SensorInput
 
 
 @dataclass
 class NavigationConfig:
-    """Configuration for Navigation3D setup."""
+    """Configuration for Navigation setup."""
     # Update settings
     update_interval: float = 0.1
     log_state: bool = True
@@ -44,9 +44,9 @@ def create_navigator(
     config: Optional[NavigationConfig] = None,
     sensors: Optional[SensorInput] = None,
     motion_controller=None
-) -> Navigation3D:
+) -> Navigation:
     """
-    Create a Navigation3D instance with the given configuration.
+    Create a Navigation instance with the given configuration.
     
     Args:
         config: NavigationConfig instance (uses defaults if None)
@@ -54,7 +54,7 @@ def create_navigator(
         motion_controller: Optional MotionController for motor velocity tracking
     
     Returns:
-        Configured Navigation3D instance
+        Configured Navigation instance
     """
     if config is None:
         config = NavigationConfig()
@@ -62,7 +62,7 @@ def create_navigator(
     if sensors is None:
         sensors = SensorInput(imu=True)
     
-    navigator = Navigation3D(
+    navigator = Navigation(
         sensors=sensors,
         position=config.position,
         orientation=config.orientation,
@@ -76,12 +76,12 @@ def create_navigator(
     return navigator
 
 
-async def run_navigation(navigator: Navigation3D, config: Optional[NavigationConfig] = None):
+async def run_navigation(navigator: Navigation, config: Optional[NavigationConfig] = None):
     """
     Run continuous navigation updates with the given configuration.
     
     Args:
-        navigator: Navigation3D instance
+        navigator: Navigation instance
         config: NavigationConfig instance (uses defaults if None)
     """
     if config is None:

@@ -1,7 +1,7 @@
 """
 nav_manual_display_test.py
 
-Manual control test with integrated Navigation3D and NavigationDisplay visualization.
+Manual control test with integrated Navigation and NavigationDisplay visualization.
 
 Uses keyboard input (w/a/s/d/r/q) for rover control while displaying
 real-time navigation data.

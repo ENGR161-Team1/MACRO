@@ -1,7 +1,7 @@
 """
 navigation_display_test.py
 
-Mobility test with integrated Navigation3D and NavigationDisplay visualization.
+Mobility test with integrated Navigation and NavigationDisplay visualization.
 
 This combines the safety ring obstacle avoidance from MotionController
 with real-time navigation tracking and visual display.

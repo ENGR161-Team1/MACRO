@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2025-12-06
+
+### Added
+- `macro_config.toml` - Centralized configuration file for all MACRO systems
+- `controller.py` - Central controller that reads config and initializes all modules
+- Configuration sections: `[sensors]`, `[mobility]`, `[navigation]`, `[display]`, `[testing]`
+- `Config`, `SensorConfig`, `MobilityConfig`, `NavigationConfig`, `DisplayConfig`, `TestingConfig` dataclasses
+- `load_config()` function for parsing TOML configuration
+- `Controller` class with `initialize()`, `run()`, and `stop()` methods
+
+### Changed
+- Renamed `Transformation3D` → `Transformation`
+- Renamed `Location3D` → `Location`
+- Renamed `Navigation3D` → `Navigation`
+- Moved `task_manager.py` from `systems/` to `controller.py` at project root
+- All sensor methods now async (get_accel, get_gyro, get_mag, get_distance, etc.)
+
+### Removed
+- `systems/task_manager.py` (replaced by `controller.py`)
+- Thermal configuration section (not implemented)
+
+---
+
+## [0.9.0] - 2025-12-06
+
 ### Added
 - `ColorSensor` support in `SensorInput` via Build HAT
 - `color_sensor` and `color_sensor_port` parameters for initialization
@@ -20,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.8.2] - 2024-12-06
+## [0.8.2] - 2025-12-06
 
 ### Added
 - Dynamic scale in `NavigationDisplay` based on window size and world bounds
@@ -36,7 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.8.1] - 2024-12-06
+## [0.8.1] - 2025-12-06
 
 ### Added
 - Motor velocity display in `NavigationDisplay` info panel
@@ -52,14 +77,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.8.0] - 2024-12-06
+## [0.8.0] - 2025-12-06
 
 ### Added
 - Motor encoder velocity tracking in `MotionController`
   - `motor_position` and `motor_velocity` state variables
   - `update_motor_state(dt)` async method for encoder updates
   - `get_velocity()` and `get_position()` methods
-- `motion_controller` parameter in `Location3D`/`Navigation3D` for motor-based velocity decay
+- `motion_controller` parameter in `Location`/`Navigation` for motor-based velocity decay
 - `motor_velocity_threshold` parameter (default: 1.0 degrees/second)
 - Test fixtures system in `tests/fixtures/`
   - `NavigationConfig` dataclass for navigation settings
@@ -82,7 +107,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.7.1] - 2024-12-06
+## [0.7.1] - 2025-12-06
 
 ### Added
 - Magnetic field gradient background in `NavigationDisplay`
@@ -96,10 +121,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.7.0] - 2024-12-05
+## [0.7.0] - 2025-12-05
 
 ### Added
-- `update_state()` method in `Navigation3D` - unified update for position, orientation, and magnetic field
+- `update_state()` method in `Navigation` - unified update for position, orientation, and magnetic field
 - `get_magnetic_field()` async method returning magnetic field magnitude in micro-tesla
 - `magnetic_magnitude` attribute and `mag_baseline` calibration value
 - Magnetic field baseline calibration during `calibrate()`
@@ -119,7 +144,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.6.1] - 2024-12-05
+## [0.6.1] - 2025-12-05
 
 ### Fixed
 - Correct integration order in `update_position()` - position and velocity now update using previous timestep values
@@ -130,7 +155,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.6.0] - 2024-12-04
+## [0.6.0] - 2025-12-04
 
 ### Added
 - `NavigationDisplay` UI component for real-time rover visualization
@@ -138,12 +163,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Black dot + blue velocity arrow for rover position/heading
 - Info panel showing position, orientation, velocity, acceleration
 - Resizable window with adaptive canvas
-- `Navigation3D` integration via `run_continuous()` async loop
+- `Navigation` integration via `run_continuous()` async loop
 - IMU calibration system with `calibrate()` method
 - `velocity_decay` parameter to reduce drift when stationary
 - `accel_threshold` parameter to filter sensor noise
-- `tests/navigation_test.py` - mobility + Navigation3D test
-- `tests/navigation_display_test.py` - mobility + Navigation3D + display test
+- `tests/navigation_test.py` - mobility + Navigation test
+- `tests/navigation_display_test.py` - mobility + Navigation + display test
 - `tests/__init__.py` for test package
 - `ui/__init__.py` module exports
 
@@ -161,38 +186,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.5.2] - 2024-12-04
+## [0.5.2] - 2025-12-04
 
 ### Added
-- `Transformation3D` export in `systems/__init__.py`
-- `get_position()` method in `Location3D` returning position as tuple
+- `Transformation` export in `systems/__init__.py`
+- `get_position()` method in `Location` returning position as tuple
 
 ---
 
-## [0.5.1] - 2024-12-04
+## [0.5.1] - 2025-12-04
 
 ### Added
-- `log_state` kwarg for `Navigation3D.run_continuous_update()` (default: True)
-- `print_state` kwarg for `Navigation3D.run_continuous_update()` (default: False)
+- `log_state` kwarg for `Navigation.run_continuous_update()` (default: True)
+- `print_state` kwarg for `Navigation.run_continuous_update()` (default: False)
 - `print_state()` method for formatted state output
 - `log_state()` method (renamed from private)
 
 ---
 
-## [0.5.0] - 2024-12-04
+## [0.5.0] - 2025-12-04
 
 ### Added
-- `Navigation3D` class inheriting from `Location3D` with timestamped logging
+- `Navigation` class inheriting from `Location` with timestamped logging
 - Navigation state logging (position, velocity, acceleration, orientation)
 - `start_time` tracking for relative timestamps
 
 ### Changed
-- Moved `run_continuous_update` from `Location3D` to `Navigation3D`
-- Updated `systems/__init__.py` to export `Location3D` and `Navigation3D`
+- Moved `run_continuous_update` from `Location` to `Navigation`
+- Updated `systems/__init__.py` to export `Location` and `Navigation`
 
 ---
 
-## [0.4.1] - 2024-12-04
+## [0.4.1] - 2025-12-04
 
 ### Added
 - `CONTRIBUTING.md` with contribution guidelines
@@ -213,17 +238,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.4.0] - 2024-12-04
+## [0.4.0] - 2025-12-04
 
 ### Added
 - Comprehensive docstrings for `navigation_system.py` classes and methods
-- `Transformation3D` class with full 3D rotation matrix support (yaw, pitch, roll)
-- `Location3D` class for IMU-based position tracking with dead reckoning
+- `Transformation` class with full 3D rotation matrix support (yaw, pitch, roll)
+- `Location` class for IMU-based position tracking with dead reckoning
 - Gravity compensation in position tracking
 - First-iteration handling to prevent acceleration spikes
 
 ### Changed
-- All `Transformation3D` methods now use `**kwargs` for consistent API
+- All `Transformation` methods now use `**kwargs` for consistent API
 - Improved code formatting and readability in navigation system
 - Enhanced rotation matrix generation with proper ZYX convention
 
@@ -233,7 +258,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.3.0] - 2024-12-04
+## [0.3.0] - 2025-12-04
 
 ### Added
 - `basehat/__init__.py` for clean module imports
@@ -253,7 +278,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.2.0] - 2024-12-04
+## [0.2.0] - 2025-12-04
 
 ### Added
 - Build HAT communication and motion control system
@@ -283,7 +308,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.1.0] - 2024-10-15
+## [0.1.0] - 2025-10-15
 
 ### Added
 - Initial project structure

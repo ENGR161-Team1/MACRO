@@ -3,7 +3,7 @@ navigation_test.py
 
 Navigation-only test without mobility.
 
-Tests Navigation3D position tracking using the IMU sensor
+Tests Navigation position tracking using the IMU sensor
 without any motor control or safety ring.
 """
 
@@ -51,7 +51,7 @@ async def run_navigation():
 
 
 async def run_magnetism():
-    """Check magnetic field magnitude using Navigation3D."""
+    """Check magnetic field magnitude using Navigation."""
     await navigator.calibrate(samples=config.calibration_samples)
     while True:
         mag = await navigator.get_magnetic_field()

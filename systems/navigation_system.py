@@ -4,14 +4,14 @@ navigation_system.py
 3D Navigation and Position Tracking System for MACRO.
 
 This module provides:
-- Transformation3D: 3D rotation and translation utilities using Euler angles
-- Location3D: Position tracking using IMU sensor data with dead reckoning
-- Navigation3D: Extended position tracking with timestamped logging
+- Transformation: 3D rotation and translation utilities using Euler angles
+- Location: Position tracking using IMU sensor data with dead reckoning
+- Navigation: Extended position tracking with timestamped logging
 
 Classes:
-    Transformation3D: Handles 3D coordinate transformations (rotation/translation)
-    Location3D: Tracks position, velocity, and orientation using IMU integration
-    Navigation3D: Extends Location3D with continuous update loop and logging
+    Transformation: Handles 3D coordinate transformations (rotation/translation)
+    Location: Tracks position, velocity, and orientation using IMU integration
+    Navigation: Extends Location with continuous update loop and logging
 """
 
 import asyncio
@@ -22,7 +22,7 @@ import math
 GRAVITY = 9.80235
 
 
-class Transformation3D:
+class Transformation:
     """
     3D transformation utilities for rotation and translation operations.
     
@@ -116,7 +116,7 @@ class Transformation3D:
         return vector + translation
 
 
-class Location3D:
+class Location:
     """
     3D position tracking using IMU sensor data.
     
@@ -164,7 +164,7 @@ class Location3D:
         self.motor_velocity_threshold = kwargs.get("motor_velocity_threshold", 1.0)
         
         # Components
-        self.transformer = Transformation3D(**kwargs)
+        self.transformer = Transformation(**kwargs)
         self.sensors = kwargs.get("sensors", None)
         self.motion_controller = kwargs.get("motion_controller", None)
         self.initialized = False
@@ -348,15 +348,15 @@ class Location3D:
         return tuple(self.pos)
 
 
-class Navigation3D(Location3D):
+class Navigation(Location):
     """
     3D navigation system with logging capabilities.
     
-    Extends Location3D to add timestamped logging of position, velocity,
+    Extends Location to add timestamped logging of position, velocity,
     orientation, and acceleration data.
     
     Args:
-        Inherits all arguments from Location3D
+        Inherits all arguments from Location
     
     Attributes:
         log: List of logged navigation data entries
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     from systems.sensors import SensorInput
     
     sensors = SensorInput(imu=True)
-    navigator = Navigation3D(sensors=sensors, mode="degrees")
+    navigator = Navigation(sensors=sensors, mode="degrees")
     
     async def main():
         await navigator.run_continuous_update(

@@ -52,10 +52,10 @@ Ensure all sensors and motors are connected before running. See [Hardware Guide]
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 
 imu = IMUSensor()
-navigator = Navigation3D(imu=imu, mode="degrees")
+navigator = Navigation(imu=imu, mode="degrees")
 
 async def main():
     # Calibrate IMU (keep rover stationary!)
@@ -76,7 +76,7 @@ asyncio.run(main())
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from systems.mobility_system import MotionController
 
 imu = IMUSensor()
@@ -86,7 +86,7 @@ motion = MotionController(
     ultrasonic_pin=26
 )
 
-navigator = Navigation3D(
+navigator = Navigation(
     imu=imu,
     mode="degrees",
     motion_controller=motion
@@ -111,11 +111,11 @@ asyncio.run(main())
 ```python
 import asyncio
 from basehat import IMUSensor
-from systems.navigation_system import Navigation3D
+from systems.navigation_system import Navigation
 from ui.navigation_display import NavigationDisplay
 
 imu = IMUSensor()
-navigator = Navigation3D(imu=imu, mode="degrees")
+navigator = Navigation(imu=imu, mode="degrees")
 
 display = NavigationDisplay(
     width=800,
