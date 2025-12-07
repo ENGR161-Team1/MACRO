@@ -308,6 +308,8 @@ class Controller:
         self.cargo: Optional[Cargo] = None
         self._running = False
         self._sensor_task = None
+        self._cargo_monitor_task = None
+        self._motor_monitor_task = None
     
     async def initialize(self):
         """Initialize all systems based on configuration."""
@@ -386,6 +388,16 @@ class Controller:
                 delay=nc.calibration_delay,
             )
         
+        # Start cargo detection loop
+        self._cargo_task = asyncio.create_task(
+            self.cargo.monitor_cargo(update_interval=sc.update_interval)
+        )
+
+        # Start motor state update loop
+        self._motor_monitor_task = asyncio.create_task(
+            self.mobility.run_update_loop(update_interval=sc.update_interval)
+        )
+
         print("MACRO Controller initialized")
     
     def print_state(self, timestamp: float, fields: List[str] = None):
@@ -433,7 +445,10 @@ class Controller:
             parts.append(f"Orient: {orient}")
         
         if show_all or "magnetic" in fields:
-            parts.append(f"Mag: {self.state.magnetic_field:.2f} µT")
+            parts.append(f"Mag: {self.state.magnetic_field:.2f} µT Adjusted: {self.state.mag_delta:.2f} µT")
+
+        if show_all or "cargo" in fields:
+            parts.append(f"Cargo: {self.state.cargo_level}")
         
         if show_all or "ultrasonic" in fields:
             parts.append(f"Dist: {self.state.ultrasonic_distance:.1f} cm")
@@ -473,13 +488,43 @@ class Controller:
                 
                 await asyncio.sleep(nc.update_interval)
         except KeyboardInterrupt:
-            print("\nStopping MACRO Controller...")
+            print("\nKeyboard interrupt received...")
         finally:
             line_follow_task.cancel()
-            self.stop()
+            await self.shutdown()
+    
+    async def shutdown(self):
+        """
+        Graceful shutdown sequence:
+        1. Straighten the wheels
+        2. Stop all data collection
+        3. Stop all motors
+        """
+        print("Shutting down MACRO Controller...")
+        
+        # 1. Straighten the wheels
+        if self.mobility:
+            print("Straightening wheels...")
+            await self.mobility.straighten()
+        
+        # 2. Stop all data collection (sensor update loop)
+        self._running = False
+        if self._sensor_task:
+            self._sensor_task.cancel()
+            try:
+                await self._sensor_task
+            except asyncio.CancelledError:
+                pass
+        
+        # 3. Stop all motors
+        if self.mobility:
+            print("Stopping motors...")
+            self.mobility.stop()
+        
+        print("MACRO Controller stopped")
     
     def stop(self):
-        """Stop all systems."""
+        """Stop all systems (synchronous version for emergency stops)."""
         self._running = False
         if self._sensor_task:
             self._sensor_task.cancel()

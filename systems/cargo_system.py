@@ -60,3 +60,16 @@ class Cargo:
             bool: True if cargo detected at any level
         """
         return self.detect_cargo_level() != "none"
+    
+    async def monitor_cargo(self, update_interval: float = 0.1):
+        """
+        Continuously monitor cargo level and update State.
+        
+        Args:
+            update_interval (float): Time between checks in seconds (default: 0.1)
+        """
+        while True:
+            self.state.mag_delta = self.get_magnetic_delta()
+            self.state.cargo_level = self.detect_cargo_level() 
+            await asyncio.sleep(update_interval)
+    

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.3] - 2025-12-07
+
+### Added
+- `shutdown()` async method in `Controller` for graceful shutdown sequence
+
+### Changed
+- `run()` now calls `shutdown()` on KeyboardInterrupt for proper cleanup
+- Shutdown sequence: straighten wheels → stop data collection → stop motors
+
+---
+
 ## [0.12.2] - 2025-12-07
 
 ### Added

@@ -14,6 +14,8 @@ class State:
     angular_velocity: np.ndarray = field(default_factory=lambda: np.zeros(3))  # Bias-corrected angular velocity in deg/s
     angular_acceleration: np.ndarray = field(default_factory=lambda: np.zeros(3))  # Angular acceleration in deg/s²
     magnetic_field: float = 0.0  # Magnetic field magnitude in µT
+    mag_delta: float = 0.0  # Magnetic field difference from baseline in µT
+    cargo_level: str = "none"  # Cargo detection level: "none", "edge", "semi", "full"
     calibrated_position: bool = False  # Whether position/acceleration is calibrated
     calibrated_orientation: bool = False  # Whether orientation/gyro is calibrated
     calibrated_mag: bool = False  # Whether magnetic field is calibrated
