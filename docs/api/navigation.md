@@ -139,14 +139,14 @@ translated = transformer.translate_vector(
 ### Constructor
 
 ```python
-from basehat import IMUSensor
+from systems.sensors import SensorInput
 from systems.mobility_system import MotionController
 
-imu = IMUSensor()
-motion = MotionController(front_motor="A", turn_motor="B")
+sensors = SensorInput()
+motion = MotionController(front_motor="A", turn_motor="B", sensors=sensors)
 
 tracker = Location3D(
-    imu=imu,
+    sensors=sensors,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
     mode="degrees",
@@ -159,7 +159,7 @@ tracker = Location3D(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `imu` | IMUSensor | required | IMU sensor instance |
+| `sensors` | SensorInput | required | Centralized sensor manager |
 | `position` | list | `[0,0,0]` | Initial position [x, y, z] in meters |
 | `orientation` | list | `[0,0,0]` | Initial orientation [yaw, pitch, roll] |
 | `mode` | str | `"degrees"` | Angle unit |
@@ -246,7 +246,7 @@ Full 3D navigation system with logging and magnetic field sensing.
 
 ```python
 navigator = Navigation3D(
-    imu=imu,
+    sensors=sensors,
     position=[0.0, 0.0, 0.0],
     orientation=[0.0, 0.0, 0.0],
     mode="degrees",
