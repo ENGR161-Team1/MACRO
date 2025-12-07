@@ -106,7 +106,8 @@ class MotionController:
     async def update_motor_state(self):
         """Update motor encoder state."""
         self.state.motor_position = self.front_motor.get_position()
-        self.state.motor_velocity = self.front_motor.get_velocity()
+        self.state.motor_velocity = self.front_motor.get_speed()
+        self.state.turn_position = self.turn_motor.get_position()
 
     async def increase_speed(self, increment: int = 5):
         """
@@ -182,13 +183,45 @@ class MotionController:
     async def auto_line_follow(self):
         """
         Automatically follow a line using left and right line finders.
-        Reads line finder values from State.
+        Combines safety monitoring with line following.
+        Reads line finder values and ultrasonic distance from State.
         """
         # Start forward motion
-        await self.start_safety_ring()
+        self.front_motor.start(self.forward_speed)
         self.moving = True
+        self.current_speed = self.forward_speed
         
         while True:
+            # Safety check first
+            dist = self.get_distance()
+            
+            if dist < self.stopping_distance:
+                if self.moving:
+                    self.front_motor.stop()
+                    print("Obstacle detected! Stopping motors.")
+                    self.moving = False
+            elif dist < self.slowdown_distance:
+                if self.moving and self.current_speed != self.forward_speed_slow:
+                    self.front_motor.start(self.forward_speed_slow)
+                    print("Obstacle nearby! Slowing down.")
+                    self.current_speed = self.forward_speed_slow
+                elif not self.moving:
+                    self.front_motor.start(self.forward_speed_slow)
+                    print("Path partially clear. Resuming at slow speed.")
+                    self.moving = True
+                    self.current_speed = self.forward_speed_slow
+            else:
+                if not self.moving:
+                    self.front_motor.start(self.forward_speed)
+                    print("Path clear. Resuming movement.")
+                    self.moving = True
+                    self.current_speed = self.forward_speed
+                elif self.current_speed != self.forward_speed:
+                    self.front_motor.start(self.forward_speed)
+                    print("Path clear. Speeding up.")
+                    self.current_speed = self.forward_speed
+            
+            # Line following logic (only when moving)
             if self.moving:
                 left_in = self.state.lf_left_value
                 right_in = self.state.lf_right_value
@@ -209,7 +242,7 @@ class MotionController:
                 else:
                     # Neither sensor on line - straighten
                     await self.straighten()
-                
-                await asyncio.sleep(0.1)
+            
+            await asyncio.sleep(0.1)
             
 

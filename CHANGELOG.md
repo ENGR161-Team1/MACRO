@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2025-12-07
+
+### Added
+- `turn_position` field in `State` for tracking turn motor position
+- `"turn"` option in controller's `print_state()` for displaying turn position
+
+### Fixed
+- `auto_line_follow()` now properly runs - combined safety monitoring and line following into single loop (was blocked by infinite `start_safety_ring()` call)
+
+---
+
 ## [0.12.0] - 2025-12-07
 
 ### Added

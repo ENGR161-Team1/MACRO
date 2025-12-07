@@ -23,5 +23,6 @@ class State:
     ultrasonic_distance: float = 30.0  # Ultrasonic sensor distance in cm
     color_sensor_value: int = 0  # Color sensor value 
     button_pressed: bool = False  # Button state
-    motor_position: float = 0.0  # Motor position in degrees
-    motor_velocity: float = 0.0  # Motor velocity in degrees per second
+    motor_position: float = 0.0  # Front motor position in degrees
+    motor_velocity: float = 0.0  # Front motor velocity in degrees per second
+    turn_position: float = 0.0  # Turn motor position in degrees

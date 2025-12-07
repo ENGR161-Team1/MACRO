@@ -402,7 +402,8 @@ class Controller:
                 - "magnetic": Magnetic field magnitude
                 - "ultrasonic": Ultrasonic distance
                 - "line_finder": Left and right line finder values
-                - "motor": Motor position and velocity
+                - "motor": Front motor position and velocity
+                - "turn": Turn motor position
                 - "all": All fields
                 Use [] or None for no output. Default: ["all"]
         """
@@ -442,6 +443,9 @@ class Controller:
         
         if show_all or "motor" in fields:
             parts.append(f"Motor: pos={self.state.motor_position:.1f}° vel={self.state.motor_velocity:.1f}°/s")
+        
+        if show_all or "turn" in fields:
+            parts.append(f"Turn: {self.state.turn_position:.1f}°")
         
         if len(parts) > 1:
             print(", ".join(parts))
