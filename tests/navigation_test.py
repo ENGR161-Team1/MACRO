@@ -12,9 +12,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio
-from fixtures import create_navigator, NavigationConfig
+from fixtures import create_sensors, SensorConfig, create_navigator, NavigationConfig
 
 # ============ CONFIGURATION ============
+sensor_config = SensorConfig(
+    imu=True,
+    ultrasonic=False,  # Not needed for navigation-only
+)
+
 config = NavigationConfig(
     update_interval=0.1,
     log_state=False,
@@ -30,7 +35,8 @@ config = NavigationConfig(
 TEST_MODE = "magnetism"
 # =======================================
 
-navigator = create_navigator(config)
+sensors = create_sensors(sensor_config)
+navigator = create_navigator(config, sensors=sensors)
 
 
 async def run_navigation():

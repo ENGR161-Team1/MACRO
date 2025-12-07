@@ -1,5 +1,5 @@
 """
-Mobility fixture for MARCO tests.
+Mobility fixture for MACRO tests.
 
 Provides configurable MotionController setup.
 """
@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from dataclasses import dataclass
 from typing import Optional
 from systems.mobility_system import MotionController
+from systems.sensors import SensorInput
 
 
 @dataclass
@@ -19,9 +20,6 @@ class MobilityConfig:
     # Motor ports
     front_motor: str = "A"
     turn_motor: str = "B"
-    
-    # Ultrasonic sensor
-    ultrasonic_pin: int = 26
     
     # Safety thresholds (cm)
     slowdown_distance: float = 30.0
@@ -32,12 +30,16 @@ class MobilityConfig:
     forward_speed_slow: int = 10
 
 
-def create_motion_controller(config: Optional[MobilityConfig] = None) -> MotionController:
+def create_motion_controller(
+    config: Optional[MobilityConfig] = None,
+    sensors: Optional[SensorInput] = None
+) -> MotionController:
     """
     Create a MotionController instance with the given configuration.
     
     Args:
         config: MobilityConfig instance (uses defaults if None)
+        sensors: SensorInput instance (creates default if None)
     
     Returns:
         Configured MotionController instance
@@ -45,10 +47,13 @@ def create_motion_controller(config: Optional[MobilityConfig] = None) -> MotionC
     if config is None:
         config = MobilityConfig()
     
+    if sensors is None:
+        sensors = SensorInput(ultrasonic=True)
+    
     motion = MotionController(
         front_motor=config.front_motor,
         turn_motor=config.turn_motor,
-        ultrasonic_pin=config.ultrasonic_pin,
+        sensors=sensors,
         slowdown_distance=config.slowdown_distance,
         stopping_distance=config.stopping_distance,
         forward_speed=config.forward_speed,
