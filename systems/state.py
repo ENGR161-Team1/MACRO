@@ -28,3 +28,4 @@ class State:
     motor_position: float = 0.0  # Front motor position in degrees
     motor_velocity: float = 0.0  # Front motor velocity in degrees per second
     turn_position: float = 0.0  # Turn motor position in degrees
+    deploying_cargo: bool = False  # Whether cargo is being deployed (pauses motion)

@@ -1,4 +1,5 @@
 import asyncio
+from buildhat import Motor
 from systems.state import State
 
 
@@ -8,9 +9,13 @@ class Cargo:
     
     Uses the IMU magnetometer (via State) to detect magnetic cargo markers.
     Magnetic field values are updated by SensorInput.
+    Payload motor controls cargo deployment.
     
     Args:
         state (State): Centralized state object for sensor data
+        motor_port (str): Build HAT port for payload motor (default: "B")
+        motor_speed (int): Motor speed for deployment (default: 50)
+        deploy_angle (int): Degrees to turn for deployment (default: 180)
         edge_threshold (float): Magnetic threshold for edge detection in µT (default: 400)
         semi_threshold (float): Magnetic threshold for semi-detection in µT (default: 1000)
         full_threshold (float): Magnetic threshold for full detection in µT (default: 3000)
@@ -18,6 +23,12 @@ class Cargo:
     
     def __init__(self, **kwargs):
         self.state = kwargs.get("state", State())
+        
+        # Payload motor
+        self.motor = Motor(kwargs.get("motor_port", "B"))
+        self.motor_speed = kwargs.get("motor_speed", 50)
+        self.deploy_angle = kwargs.get("deploy_angle", 180)
+        self.deployed = False  # Tracks if cargo has been deployed (one-time deployment)
 
         self.edge_mag_threshold = kwargs.get("edge_threshold", 400)  # µT
         self.semi_mag_threshold = kwargs.get("semi_threshold", 1000)  # µT
@@ -61,15 +72,53 @@ class Cargo:
         """
         return self.detect_cargo_level() != "none"
     
-    async def monitor_cargo(self, update_interval: float = 0.1):
+    async def deploy(self):
+        """
+        Deploy the cargo by turning the payload motor +180 degrees.
+        Sets deploying_cargo state to pause motion during deployment.
+        """
+        if self.deployed:
+            print("Cargo already deployed")
+            return
+        
+        print("Deploying cargo...")
+        self.state.deploying_cargo = True
+        self.motor.run_for_degrees(self.deploy_angle, self.motor_speed)
+        self.state.deploying_cargo = False
+        self.deployed = True
+        print("Cargo deployed")
+    
+    async def close(self):
+        """
+        Close the payload by turning the motor -180 degrees.
+        Does not reset deployed flag to prevent re-deployment.
+        """
+        print("Closing cargo bay...")
+        self.motor.run_for_degrees(-self.deploy_angle, self.motor_speed)
+        print("Cargo bay closed")
+    
+    def stop(self):
+        """Stop the cargo motor."""
+        self.motor.stop()
+    
+    async def run_cargo_update_loop(self, update_interval: float = 0.1):
         """
         Continuously monitor cargo level and update State.
+        Auto-deploys cargo when full level is detected (one-time only).
         
         Args:
             update_interval (float): Time between checks in seconds (default: 0.1)
         """
         while True:
             self.state.mag_delta = self.get_magnetic_delta()
-            self.state.cargo_level = self.detect_cargo_level() 
+            self.state.cargo_level = self.detect_cargo_level()
+            
+            # Auto-deploy when full cargo detected (only once)
+            if self.state.cargo_level == "full" and not self.deployed:
+                await self.deploy()
+                await asyncio.sleep(0.5)  # Brief pause between deploy and close
+                await self.close()
+                # deployed remains True to prevent future deployments
+            
             await asyncio.sleep(update_interval)
     

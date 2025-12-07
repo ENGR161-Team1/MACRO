@@ -147,6 +147,11 @@ class TestingConfig:
 @dataclass
 class CargoConfig:
     """Cargo detection configuration from [cargo] section."""
+    # Motor settings
+    motor_port: str = "B"
+    motor_speed: int = 50
+    deploy_angle: int = 180
+    
     # Magnetic thresholds in micro-tesla
     edge_threshold: float = 400.0
     semi_threshold: float = 1000.0
@@ -260,6 +265,9 @@ def load_config(config_path: Optional[str] = None) -> Config:
     if "cargo" in data:
         c = data["cargo"]
         config.cargo = CargoConfig(
+            motor_port=c.get("motor", {}).get("port", "B"),
+            motor_speed=c.get("motor", {}).get("speed", 50),
+            deploy_angle=c.get("motor", {}).get("deploy_angle", 180),
             edge_threshold=c.get("thresholds", {}).get("edge", 400.0),
             semi_threshold=c.get("thresholds", {}).get("semi", 1000.0),
             full_threshold=c.get("thresholds", {}).get("full", 3000.0),
@@ -368,6 +376,9 @@ class Controller:
         cc = self.config.cargo
         self.cargo = Cargo(
             state=self.state,
+            motor_port=cc.motor_port,
+            motor_speed=cc.motor_speed,
+            deploy_angle=cc.deploy_angle,
             edge_threshold=cc.edge_threshold,
             semi_threshold=cc.semi_threshold,
             full_threshold=cc.full_threshold,
@@ -387,11 +398,6 @@ class Controller:
                 samples=nc.calibration_samples,
                 delay=nc.calibration_delay,
             )
-        
-        # Start cargo detection loop
-        self._cargo_task = asyncio.create_task(
-            self.cargo.monitor_cargo(update_interval=sc.update_interval)
-        )
 
         # Start motor state update loop
         self._motor_monitor_task = asyncio.create_task(
@@ -477,6 +483,11 @@ class Controller:
         
         # Start line following task
         line_follow_task = asyncio.create_task(self.mobility.auto_line_follow())
+
+        # Start cargo monitoring task
+        cargo_monitor_task = asyncio.create_task(
+            self.cargo.run_cargo_update_loop(update_interval=self.config.sensors.update_interval)
+        )
         
         try:
             while self._running:

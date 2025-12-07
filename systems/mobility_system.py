@@ -185,6 +185,7 @@ class MotionController:
         Automatically follow a line using left and right line finders.
         Combines safety monitoring with line following.
         Reads line finder values and ultrasonic distance from State.
+        Pauses when state.deploying_cargo is True.
         """
         # Start forward motion
         self.front_motor.start(self.forward_speed)
@@ -192,6 +193,15 @@ class MotionController:
         self.current_speed = self.forward_speed
         
         while True:
+            # Check if cargo is being deployed - pause motion
+            if self.state.deploying_cargo:
+                if self.moving:
+                    self.front_motor.stop()
+                    print("Pausing for cargo deployment...")
+                    self.moving = False
+                await asyncio.sleep(0.1)
+                continue
+            
             # Safety check first
             dist = self.get_distance()
             
@@ -205,17 +215,17 @@ class MotionController:
                     self.front_motor.start(self.forward_speed_slow)
                     print("Obstacle nearby! Slowing down.")
                     self.current_speed = self.forward_speed_slow
-                elif not self.moving:
+                elif not self.moving and not self.state.deploying_cargo:
                     self.front_motor.start(self.forward_speed_slow)
                     print("Path partially clear. Resuming at slow speed.")
                     self.moving = True
                     self.current_speed = self.forward_speed_slow
             else:
-                if not self.moving:
-                    self.front_motor.start(self.forward_speed)
-                    print("Path clear. Resuming movement.")
-                    self.moving = True
-                    self.current_speed = self.forward_speed
+                if not self.moving and not self.state.deploying_cargo:
+                        self.front_motor.start(self.forward_speed)
+                        print("Path clear. Resuming movement.")
+                        self.moving = True
+                        self.current_speed = self.forward_speed
                 elif self.current_speed != self.forward_speed:
                     self.front_motor.start(self.forward_speed)
                     print("Path clear. Speeding up.")

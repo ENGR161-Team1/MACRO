@@ -31,8 +31,8 @@ imu_to_cargo = 0.24 # Horizontal distance from IMU to cargo deploy location in m
 [sensors.pins]
 # GPIO pin assignments for Grove Base HAT sensors
 ultrasonic = 26
-line_finder_left = 16
-line_finder_right = 5
+line_finder_left = 5
+line_finder_right = 16
 button = 22
 
 [sensors.ports]
@@ -106,7 +106,13 @@ print_fields = ["all"]
 # =============================================================================
 
 [cargo]
-# Cargo detection using magnetic field sensing
+# Cargo detection and deployment system
+
+[cargo.motor]
+# Payload motor settings
+port = "B"          # Build HAT port for payload motor
+speed = 50          # Motor speed for deployment (0-100)
+deploy_angle = 180  # Degrees to turn for deployment
 
 [cargo.thresholds]
 # Magnetic field thresholds in micro-tesla (µT)
