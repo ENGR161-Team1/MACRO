@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2025-12-07
+
+### Added
+- `CargoConfig` dataclass for cargo detection configuration
+- `[cargo]` section in `macro_config.toml` with magnetic thresholds
+- `turn_speed` and `max_turn` parameters in `MobilityConfig`
+- `[mobility.turn]` section in config for turn limits
+- `line_finder` option in controller's `print_state()` for displaying line finder values
+- Line following auto-started in `Controller.run()` via `auto_line_follow()` task
+
+### Changed
+- All configuration now loaded from `macro_config.toml` (no hardcoded defaults in controller)
+- `Cargo` class now receives threshold config from controller
+- `Controller.print_state()` moved from `Navigation` class to `Controller`
+- `Controller.run()` now starts line following task automatically
+- `Navigation.run_continuous_update()` simplified - print functionality moved to controller
+- Gyro bias subtraction now properly reorders bias from `[gx, gy, gz]` to `[yaw, pitch, roll]`
+- `Location.update()` now checks calibration flags before accessing bias values
+
+### Removed
+- `print_state()` method from `Navigation` class
+- `reverse_speed` from `MobilityConfig` (unused - reverse uses `-forward_speed`)
+- Broken `start_update_loop()` method from `Controller`
+
+### Fixed
+- `Navigation.update_state()` no longer overwrites state values with boolean returns
+- Motor velocity reference in navigation now uses `self.state.motor_velocity` instead of `self.motion_controller.motor_velocity`
+- Gyro bias axis order mismatch in `update_orientation()`
+- Potential crash in `Location.update()` when calibration not performed
+
+---
+
 ## [0.11.0] - 2025-12-07
 
 ### Added

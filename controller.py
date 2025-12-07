@@ -28,6 +28,8 @@ except ImportError:
 from systems.sensors import SensorInput
 from systems.mobility_system import MotionController
 from systems.navigation_system import Navigation
+from systems.state import State
+from systems.cargo_system import Cargo
 
 
 @dataclass
@@ -47,6 +49,18 @@ class SensorConfig:
     
     # Ports
     color_sensor_port: str = "D"
+    
+    # Sensor offsets
+    imu_height: float = 0.015  # Height of IMU from ground in meters
+    color_sensor_height: float = 0.025  # Height of color sensor from ground in meters
+    lf_height: float = 0.025  # Height of left front distance sensor from ground in meters
+    lf_offset: float = 0.0225 # Horizontal offset of left front distance sensor from center in meters
+    imu_to_lf: float = 0.125 # Horizontal distance from IMU to front distance sensors in meters
+    imu_to_color: float = 0.11 # Horizontal distance from IMU to color sensor in meters
+    imu_to_cargo: float = 0.24 # Horizontal distance from IMU to cargo deploy location in meters
+    
+    # Update interval
+    update_interval: float = 0.05
 
 
 @dataclass
@@ -58,7 +72,10 @@ class MobilityConfig:
     # Speed
     forward_speed: int = 20
     forward_speed_slow: int = 10
-    reverse_speed: int = -20
+    turn_speed: int = 20
+    
+    # Turn limits
+    max_turn: int = 100
     
     # Safety
     slowdown_distance: float = 30.0
@@ -88,22 +105,16 @@ class NavigationConfig:
     update_interval: float = 0.1
     print_state: bool = False
     print_fields: List[str] = field(default_factory=lambda: ["all"])
-    
-    # Sensor offsets
-    imu_height: float = 0.015  # Height of IMU from ground in meters
-    color_sensor_height: float = 0.025  # Height of color sensor from ground in meters
-    lf_height: float = 0.025  # Height of left front distance sensor from ground in meters
-    lf_offset: float = 0.0225 # Horizontal offset of left front distance sensor from center in meters
-    imu_to_lf: float = 0.125 # Horizontal distance from IMU to front distance sensors in meters
-    imu_to_color: float = 0.11 # Horizontal distance from IMU to color sensor in meters
-    imu_to_cargo: float = 0.24 # Horizontal distance from IMU to cargo deploy location in meters
 
 
 @dataclass
 class DisplayConfig:
-    """Display configuration from [display] section."""
+    """Display configuration from [display] section.
+    
+    Note: For future UI integration (navigation_display.py).
+    """
     enabled: bool = True
-    update_interval: int = 100
+    update_interval: int = 100  # milliseconds
     
     # Window
     width: int = 800
@@ -120,7 +131,10 @@ class DisplayConfig:
 
 @dataclass
 class TestingConfig:
-    """Testing configuration from [testing] section."""
+    """Testing configuration from [testing] section.
+    
+    Note: For future test framework integration.
+    """
     mock_hardware: bool = False
     verbose: bool = True
     
@@ -131,11 +145,21 @@ class TestingConfig:
 
 
 @dataclass
+class CargoConfig:
+    """Cargo detection configuration from [cargo] section."""
+    # Magnetic thresholds in micro-tesla
+    edge_threshold: float = 400.0
+    semi_threshold: float = 1000.0
+    full_threshold: float = 3000.0
+
+
+@dataclass
 class Config:
     """Complete MACRO configuration."""
     sensors: SensorConfig = field(default_factory=SensorConfig)
     mobility: MobilityConfig = field(default_factory=MobilityConfig)
     navigation: NavigationConfig = field(default_factory=NavigationConfig)
+    cargo: CargoConfig = field(default_factory=CargoConfig)
     display: DisplayConfig = field(default_factory=DisplayConfig)
     testing: TestingConfig = field(default_factory=TestingConfig)
 
@@ -174,6 +198,14 @@ def load_config(config_path: Optional[str] = None) -> Config:
             line_finder_right_pin=s.get("pins", {}).get("line_finder_right", 5),
             button_pin=s.get("pins", {}).get("button", 22),
             color_sensor_port=s.get("ports", {}).get("color_sensor", "D"),
+            imu_height=s.get("imu_height", 0.015),
+            color_sensor_height=s.get("color_sensor_height", 0.025),
+            lf_height=s.get("lf_height", 0.025),
+            lf_offset=s.get("lf_offset", 0.0225),
+            imu_to_lf=s.get("imu_to_lf", 0.125),
+            imu_to_color=s.get("imu_to_color", 0.11),
+            imu_to_cargo=s.get("imu_to_cargo", 0.24),
+            update_interval=s.get("update_interval", 0.05),
         )
     
     # Parse mobility section
@@ -184,7 +216,8 @@ def load_config(config_path: Optional[str] = None) -> Config:
             turn_motor=m.get("turn_motor", "B"),
             forward_speed=m.get("speed", {}).get("forward", 20),
             forward_speed_slow=m.get("speed", {}).get("forward_slow", 10),
-            reverse_speed=m.get("speed", {}).get("reverse", -20),
+            turn_speed=m.get("speed", {}).get("turn", 20),
+            max_turn=m.get("turn", {}).get("max_angle", 100),
             slowdown_distance=m.get("safety", {}).get("slowdown_distance", 30.0),
             stopping_distance=m.get("safety", {}).get("stopping_distance", 15.0),
         )
@@ -205,13 +238,6 @@ def load_config(config_path: Optional[str] = None) -> Config:
             update_interval=n.get("update", {}).get("interval", 0.1),
             print_state=n.get("update", {}).get("print_state", False),
             print_fields=n.get("update", {}).get("print_fields", ["all"]),
-            imu_height=n.get("imu_height", 0.015),
-            color_sensor_height=n.get("color_sensor_height", 0.025),
-            lf_height=n.get("lf_height", 0.025),
-            lf_offset=n.get("lf_offset", 0.0225),
-            imu_to_lf=n.get("imu_to_lf", 0.125),
-            imu_to_color=n.get("imu_to_color", 0.11),
-            imu_to_cargo=n.get("imu_to_cargo", 0.24)
         )
     
     # Parse display section
@@ -228,6 +254,15 @@ def load_config(config_path: Optional[str] = None) -> Config:
             accent=d.get("colors", {}).get("accent", "#e94560"),
             success=d.get("colors", {}).get("success", "#4ecca3"),
             warning=d.get("colors", {}).get("warning", "#ffc107"),
+        )
+    
+    # Parse cargo section
+    if "cargo" in data:
+        c = data["cargo"]
+        config.cargo = CargoConfig(
+            edge_threshold=c.get("thresholds", {}).get("edge", 400.0),
+            semi_threshold=c.get("thresholds", {}).get("semi", 1000.0),
+            full_threshold=c.get("thresholds", {}).get("full", 3000.0),
         )
     
     # Parse testing section
@@ -250,29 +285,39 @@ class Controller:
     
     Reads configuration from macro_config.toml and initializes all systems.
     Provides unified access to sensors, mobility, navigation, and other systems.
+    Uses a shared State instance across all systems.
     
     Args:
         config_path: Optional path to config file
     
     Attributes:
         config: Parsed configuration
+        state: Shared State instance
         sensors: SensorInput instance
         mobility: MotionController instance
         navigator: Navigation instance
+        cargo: Cargo instance
     """
     
     def __init__(self, config_path: Optional[str] = None):
         self.config = load_config(config_path)
+        self.state: State = State()
         self.sensors: Optional[SensorInput] = None
         self.mobility: Optional[MotionController] = None
         self.navigator: Optional[Navigation] = None
+        self.cargo: Optional[Cargo] = None
         self._running = False
+        self._sensor_task = None
     
     async def initialize(self):
         """Initialize all systems based on configuration."""
-        # Initialize sensors
         sc = self.config.sensors
+        nc = self.config.navigation
+        mc = self.config.mobility
+        
+        # Initialize sensors with shared state
         self.sensors = SensorInput(
+            state=self.state,
             imu=sc.imu,
             ultrasonic=sc.ultrasonic,
             ultrasonic_pin=sc.ultrasonic_pin,
@@ -285,22 +330,22 @@ class Controller:
             color_sensor_port=sc.color_sensor_port,
         )
         
-        # Initialize mobility
-        mc = self.config.mobility
+        # Initialize mobility with shared state
         self.mobility = MotionController(
+            state=self.state,
             front_motor=mc.front_motor,
             turn_motor=mc.turn_motor,
-            sensors=self.sensors,
             slowdown_distance=mc.slowdown_distance,
             stopping_distance=mc.stopping_distance,
             forward_speed=mc.forward_speed,
             forward_speed_slow=mc.forward_speed_slow,
+            turn_speed=mc.turn_speed,
+            max_turn=mc.max_turn,
         )
         
-        # Initialize navigation
-        nc = self.config.navigation
+        # Initialize navigation with shared state
         self.navigator = Navigation(
-            sensors=self.sensors,
+            state=self.state,
             position=nc.position,
             orientation=nc.orientation,
             mode=nc.mode,
@@ -308,47 +353,132 @@ class Controller:
             accel_threshold=nc.accel_threshold,
             motor_velocity_threshold=nc.motor_velocity_threshold,
             motion_controller=self.mobility,
-            imu_height=nc.imu_height,
-            color_sensor_height=nc.color_sensor_height,
-            lf_height=nc.lf_height,
-            lf_offset=nc.lf_offset,
-            imu_to_lf=nc.imu_to_lf,
-            imu_to_color=nc.imu_to_color,
-            imu_to_cargo=nc.imu_to_cargo,
+            imu_height=sc.imu_height,
+            color_sensor_height=sc.color_sensor_height,
+            lf_height=sc.lf_height,
+            lf_offset=sc.lf_offset,
+            imu_to_lf=sc.imu_to_lf,
+            imu_to_color=sc.imu_to_color,
+            imu_to_cargo=sc.imu_to_cargo,
         )
+        
+        # Initialize cargo with shared state
+        cc = self.config.cargo
+        self.cargo = Cargo(
+            state=self.state,
+            edge_threshold=cc.edge_threshold,
+            semi_threshold=cc.semi_threshold,
+            full_threshold=cc.full_threshold,
+        )
+        
+        # Start sensor update loop
+        self._sensor_task = asyncio.create_task(
+            self.sensors.run_sensor_update(update_interval=sc.update_interval)
+        )
+        
+        # Allow sensors to start
+        await asyncio.sleep(0.1)
         
         # Calibrate if enabled
         if nc.calibrate:
-            await self.navigator.calibrate(
+            await self.sensors.calibrate_imu(
                 samples=nc.calibration_samples,
                 delay=nc.calibration_delay,
             )
         
         print("MACRO Controller initialized")
     
+    def print_state(self, timestamp: float, fields: List[str] = None):
+        """
+        Print the current state with timestamp.
+        
+        Args:
+            timestamp (float): Current timestamp in seconds since start
+            fields (list): List of fields to print. Options:
+                - "position": Robot position (x, y, z)
+                - "velocity": Robot velocity
+                - "acceleration": Robot acceleration
+                - "orientation": Robot orientation (yaw, pitch, roll)
+                - "magnetic": Magnetic field magnitude
+                - "ultrasonic": Ultrasonic distance
+                - "line_finder": Left and right line finder values
+                - "motor": Motor position and velocity
+                - "all": All fields
+                Use [] or None for no output. Default: ["all"]
+        """
+        if fields is None:
+            fields = ["all"]
+        
+        if not fields:
+            return
+        
+        show_all = "all" in fields
+        parts = [f"[{timestamp:.3f}s]"]
+        
+        if show_all or "position" in fields:
+            pos = tuple(round(p, 3) for p in self.state.position)
+            parts.append(f"Pos: {pos}")
+        
+        if show_all or "velocity" in fields:
+            vel = tuple(round(v, 3) for v in self.state.velocity)
+            parts.append(f"Vel: {vel}")
+        
+        if show_all or "acceleration" in fields:
+            acc = tuple(round(a, 3) for a in self.state.acceleration)
+            parts.append(f"Acc: {acc}")
+        
+        if show_all or "orientation" in fields:
+            orient = tuple(round(o, 2) for o in self.state.orientation)
+            parts.append(f"Orient: {orient}")
+        
+        if show_all or "magnetic" in fields:
+            parts.append(f"Mag: {self.state.magnetic_field:.2f} µT")
+        
+        if show_all or "ultrasonic" in fields:
+            parts.append(f"Dist: {self.state.ultrasonic_distance:.1f} cm")
+        
+        if show_all or "line_finder" in fields:
+            parts.append(f"LF: L={self.state.lf_left_value:.0f} R={self.state.lf_right_value:.0f}")
+        
+        if show_all or "motor" in fields:
+            parts.append(f"Motor: pos={self.state.motor_position:.1f}° vel={self.state.motor_velocity:.1f}°/s")
+        
+        if len(parts) > 1:
+            print(", ".join(parts))
+    
     async def run(self):
-        """Run the main control loop."""
+        """Run the main control loop with line following."""
+        import time
+        
         self._running = True
         nc = self.config.navigation
+        start_time = time.time()
         
         print("MACRO Controller running...")
+        
+        # Start line following task
+        line_follow_task = asyncio.create_task(self.mobility.auto_line_follow())
         
         try:
             while self._running:
                 await self.navigator.update_state(dt=nc.update_interval)
                 
                 if nc.print_state:
-                    self.navigator.print_state(asyncio.get_event_loop().time())
+                    timestamp = time.time() - start_time
+                    self.print_state(timestamp, nc.print_fields)
                 
                 await asyncio.sleep(nc.update_interval)
         except KeyboardInterrupt:
             print("\nStopping MACRO Controller...")
         finally:
+            line_follow_task.cancel()
             self.stop()
     
     def stop(self):
         """Stop all systems."""
         self._running = False
+        if self._sensor_task:
+            self._sensor_task.cancel()
         if self.mobility:
             self.mobility.stop()
         print("MACRO Controller stopped")
