@@ -8,6 +8,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.9.0] - 2024-12-06
+
+### Added
+- `SensorInput` class in `systems/sensors.py` for centralized sensor management
+  - Manages IMU, ultrasonic, line finders, button, and hall sensors
+  - Provides unified interface: `get_accel()`, `get_gyro()`, `get_mag()`, `get_distance()`
+  - Availability checks: `has_imu()`, `has_ultrasonic()`, etc.
+- `SensorConfig` dataclass in test fixtures for sensor configuration
+- `create_sensors()` factory function in test fixtures
+
+### Changed
+- `Navigation3D` now uses `sensors=` parameter instead of `imu=`
+- `MotionController` now uses `sensors=` parameter instead of creating own ultrasonic
+- Navigation and mobility systems now share a single `SensorInput` instance
+- Test fixtures updated: `create_navigator()` and `create_motion_controller()` accept `sensors=`
+- All test files updated to create shared `SensorInput` instance
+
+### Removed
+- Direct `IMUSensor` import in `navigation_system.py`
+- Direct `UltrasonicSensor` creation in `MotionController`
+- `ultrasonic_pin` parameter from `MobilityConfig` (now in `SensorConfig`)
+
+---
+
 ## [0.8.2] - 2024-12-06
 
 ### Added

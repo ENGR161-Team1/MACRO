@@ -2,7 +2,7 @@
 
 > Mars Autonomous Cargo Rover Operations - Complete Documentation
 
-**Current Version: 0.8.2**
+**Current Version: 0.9.0**
 
 ---
 
