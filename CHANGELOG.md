@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.2] - 2025-12-07
+
+### Added
+- `LineFinder` class now exported from `basehat` module
+
+### Changed
+- `line_finders` enabled by default in `macro_config.toml`
+
+### Fixed
+- `LineFinder` was not being imported or used in `sensors.py` (was commented out)
+- `basehat/__init__.py` now correctly exports `LineFinder` class
+
+---
+
 ## [0.12.1] - 2025-12-07
 
 ### Added

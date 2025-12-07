@@ -12,7 +12,7 @@ and provides a single point of access for navigation and mobility systems.
 
 import asyncio
 import numpy as np
-from basehat import IMUSensor, UltrasonicSensor, Button
+from basehat import IMUSensor, UltrasonicSensor, Button, LineFinder
 from buildhat import ColorSensor
 from .state import State
 
@@ -65,13 +65,10 @@ class SensorInput:
         
         # Line finder sensors (disabled by default)
         if kwargs.get("line_finders", False):
-            # Note: LineFinder class not yet implemented
-            # left_pin = kwargs.get("line_finder_left_pin", 16)
-            # right_pin = kwargs.get("line_finder_right_pin", 5)
-            # self.line_finder_left = LineFinder(left_pin)
-            # self.line_finder_right = LineFinder(right_pin)
-            self.line_finder_left = None
-            self.line_finder_right = None
+            left_pin = kwargs.get("line_finder_left_pin", 16)
+            right_pin = kwargs.get("line_finder_right_pin", 5)
+            self.line_finder_left = LineFinder(left_pin)
+            self.line_finder_right = LineFinder(right_pin)
         else:
             self.line_finder_left = None
             self.line_finder_right = None

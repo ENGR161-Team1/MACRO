@@ -12,7 +12,7 @@
 # Enable/disable individual sensors
 imu = true
 ultrasonic = true
-line_finders = false
+line_finders = true
 button = false
 color_sensor = false
 
