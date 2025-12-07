@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.10.1] - 2025-12-06
+
+### Added
+- Customizable readings and logs in the test runner via `test_config.toml`.
+- New sections in `test_config.toml`: `[logging]`, `[console]`, `[readings]`.
+- Updated `test.py` to parse and use these new configurations.
+
+---
+
 ## [0.10.0] - 2025-12-06
 
 ### Added
