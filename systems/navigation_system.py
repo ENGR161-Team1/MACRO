@@ -194,12 +194,12 @@ class Location3D:
         mag_sum = 0.0
         
         for i in range(samples):
-            ax, ay, az = self.sensors.get_accel()
-            gx, gy, gz = self.sensors.get_gyro()
+            ax, ay, az = await self.sensors.get_accel()
+            gx, gy, gz = await self.sensors.get_gyro()
             
             accel_sum += np.array([ax, ay, az])
             gyro_sum += np.array([gz, gy, gx])  # yaw, pitch, roll order
-            mag_sum += self.sensors.get_magnetic_magnitude()
+            mag_sum += await self.sensors.get_magnetic_magnitude()
             
             await asyncio.sleep(delay)
         
@@ -235,7 +235,7 @@ class Location3D:
             return False
         
         # Get angular velocity from gyroscope (degrees/second)
-        d_roll, d_pitch, d_yaw = self.sensors.get_gyro()
+        d_roll, d_pitch, d_yaw = await self.sensors.get_gyro()
         new_d_orientation = np.array([d_yaw, d_pitch, d_roll])
         
         # Subtract gyro bias if calibrated
@@ -305,7 +305,7 @@ class Location3D:
                 self.velocity *= (1.0 - self.velocity_decay)
         
         # NOW read new acceleration for next iteration
-        ax, ay, az = self.sensors.get_accel()
+        ax, ay, az = await self.sensors.get_accel()
         self.accel_local = np.array([ax, ay, az])
         
         # Subtract calibration bias if calibrated
@@ -380,7 +380,7 @@ class Navigation3D(Location3D):
         if self.sensors is None or not self.sensors.has_imu():
             return 0.0
         
-        x_mag, y_mag, z_mag = self.sensors.get_mag()
+        x_mag, y_mag, z_mag = await self.sensors.get_mag()
         self.magnetic_field = np.array([x_mag, y_mag, z_mag])
         self.magnetic_magnitude = np.linalg.norm(self.magnetic_field)
         

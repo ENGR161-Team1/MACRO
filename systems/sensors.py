@@ -11,7 +11,8 @@ and provides a single point of access for navigation and mobility systems.
 """
 
 import numpy as np
-from basehat import IMUSensor, UltrasonicSensor, Button, HallSensor
+from basehat import IMUSensor, UltrasonicSensor, Button
+from buildhat import ColorSensor
 
 
 class SensorInput:
@@ -30,8 +31,8 @@ class SensorInput:
         line_finders (bool): Enable line finder sensors (default: False)
         button_pin (int): GPIO pin for button (default: 22)
         button (bool): Enable button (default: False)
-        hall_pin (int): GPIO pin for hall sensor (default: 12)
-        hall (bool): Enable hall sensor (default: False)
+        color_sensor_port (str): Build HAT port for color sensor (default: "D")
+        color_sensor (bool): Enable color sensor (default: False)
     
     Attributes:
         imu: IMUSensor instance or None
@@ -39,7 +40,11 @@ class SensorInput:
         line_finder_left: LineFinder instance or None
         line_finder_right: LineFinder instance or None
         button: Button instance or None
-        hall: HallSensor instance or None
+        color_sensor: ColorSensor instance or None
+    
+    Note:
+        Magnetic field detection uses the IMU magnetometer via get_mag()
+        and get_magnetic_magnitude() methods.
     """
     
     def __init__(self, **kwargs):
@@ -76,12 +81,12 @@ class SensorInput:
         else:
             self.button_sensor = None
         
-        # Hall sensor (disabled by default)
-        if kwargs.get("hall", False):
-            hall_pin = kwargs.get("hall_pin", 12)
-            self.hall = HallSensor(hall_pin)
+        # Color sensor (disabled by default)
+        if kwargs.get("color_sensor", False):
+            color_port = kwargs.get("color_sensor_port", "D")
+            self.color_sensor = ColorSensor(color_port)
         else:
-            self.hall = None
+            self.color_sensor = None
         
         # Cached sensor values
         self._accel = np.array([0.0, 0.0, 0.0])
@@ -93,7 +98,7 @@ class SensorInput:
     # IMU Methods
     # -------------------------------------------------------------------------
     
-    def get_accel(self):
+    async def get_accel(self):
         """
         Get acceleration from IMU.
         
@@ -106,7 +111,7 @@ class SensorInput:
         self._accel = np.array(self.imu.getAccel())
         return tuple(self._accel)
     
-    def get_gyro(self):
+    async def get_gyro(self):
         """
         Get angular velocity from IMU.
         
@@ -119,7 +124,7 @@ class SensorInput:
         self._gyro = np.array(self.imu.getGyro())
         return tuple(self._gyro)
     
-    def get_mag(self):
+    async def get_mag(self):
         """
         Get magnetic field from IMU.
         
@@ -132,7 +137,7 @@ class SensorInput:
         self._mag = np.array(self.imu.getMag())
         return tuple(self._mag)
     
-    def get_magnetic_magnitude(self):
+    async def get_magnetic_magnitude(self):
         """
         Get magnetic field magnitude.
         
@@ -149,7 +154,7 @@ class SensorInput:
     # Ultrasonic Methods
     # -------------------------------------------------------------------------
     
-    def get_distance(self):
+    async def get_distance(self):
         """
         Get distance from ultrasonic sensor.
         
@@ -170,7 +175,7 @@ class SensorInput:
     # Button Methods
     # -------------------------------------------------------------------------
     
-    def is_button_pressed(self):
+    async def is_button_pressed(self):
         """
         Check if button is pressed.
         
@@ -183,26 +188,68 @@ class SensorInput:
         return self.button_sensor.is_pressed
     
     # -------------------------------------------------------------------------
-    # Hall Sensor Methods
+    # Color Sensor Methods
+    # -------------------------------------------------------------------------
+    
+    async def get_color(self):
+        """
+        Get detected color name from color sensor.
+        
+        Returns:
+            str: Color name (e.g., "black", "white", "red", etc.) or "none"
+        """
+        if self.color_sensor is None:
+            return "none"
+        
+        try:
+            return self.color_sensor.get_color()
+        except:
+            return "none"
+    
+    async def is_black(self):
+        """
+        Check if color sensor detects black.
+        
+        Returns:
+            int: 1 if black detected, 0 otherwise
+        """
+        if self.color_sensor is None:
+            return 0
+        
+        try:
+            color = self.color_sensor.get_color()
+            return 1 if color == "black" else 0
+        except:
+            return 0
+    
+    def has_color_sensor(self):
+        """Check if color sensor is available."""
+        return self.color_sensor is not None
+    
+    # -------------------------------------------------------------------------
+    # Hall Sensor Methods (DEPRECATED - use IMU magnetometer instead)
     # -------------------------------------------------------------------------
     
     def get_hall_value(self):
         """
-        Get hall sensor reading.
+        DEPRECATED: Hall sensor removed. Use get_mag() or get_magnetic_magnitude() instead.
         
         Returns:
-            bool or int: Hall sensor value
+            bool: Always returns False
         """
-        if self.hall is None:
-            return False
-        
-        return self.hall.read()
+        import warnings
+        warnings.warn(
+            "get_hall_value() is deprecated. Use get_mag() or get_magnetic_magnitude() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return False
     
     # -------------------------------------------------------------------------
     # Line Finder Methods
     # -------------------------------------------------------------------------
     
-    def get_line_left(self):
+    async def get_line_left(self):
         """
         Get left line finder reading.
         
@@ -214,7 +261,7 @@ class SensorInput:
         
         return self.line_finder_left.value
     
-    def get_line_right(self):
+    async def get_line_right(self):
         """
         Get right line finder reading.
         
@@ -243,8 +290,19 @@ class SensorInput:
         return self.button_sensor is not None
     
     def has_hall(self):
-        """Check if hall sensor is available."""
-        return self.hall is not None
+        """
+        DEPRECATED: Hall sensor removed. Use has_imu() and get_mag() instead.
+        
+        Returns:
+            bool: Always returns False
+        """
+        import warnings
+        warnings.warn(
+            "has_hall() is deprecated. Use has_imu() and get_mag() for magnetic sensing.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return False
     
     def has_line_finders(self):
         """Check if line finders are available."""
