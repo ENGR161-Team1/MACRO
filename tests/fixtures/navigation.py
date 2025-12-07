@@ -1,5 +1,5 @@
 """
-Navigation fixture for MARCO tests.
+Navigation fixture for MACRO tests.
 
 Provides configurable Navigation3D setup.
 """
@@ -10,8 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dataclasses import dataclass, field
 from typing import List, Optional
-from basehat import IMUSensor
 from systems.navigation_system import Navigation3D
+from systems.sensors import SensorInput
 
 
 @dataclass
@@ -40,12 +40,17 @@ class NavigationConfig:
     mode: str = "degrees"
 
 
-def create_navigator(config: Optional[NavigationConfig] = None, motion_controller=None) -> Navigation3D:
+def create_navigator(
+    config: Optional[NavigationConfig] = None,
+    sensors: Optional[SensorInput] = None,
+    motion_controller=None
+) -> Navigation3D:
     """
     Create a Navigation3D instance with the given configuration.
     
     Args:
         config: NavigationConfig instance (uses defaults if None)
+        sensors: SensorInput instance (creates default if None)
         motion_controller: Optional MotionController for motor velocity tracking
     
     Returns:
@@ -54,10 +59,11 @@ def create_navigator(config: Optional[NavigationConfig] = None, motion_controlle
     if config is None:
         config = NavigationConfig()
     
-    imu_sensor = IMUSensor()
+    if sensors is None:
+        sensors = SensorInput(imu=True)
     
     navigator = Navigation3D(
-        imu=imu_sensor,
+        sensors=sensors,
         position=config.position,
         orientation=config.orientation,
         mode=config.mode,

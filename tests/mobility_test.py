@@ -1,14 +1,22 @@
 import asyncio
 from buildhat import ColorSensor, Motor
+from systems.sensors import SensorInput
 from systems.mobility_system import MotionController
 # TODO: LineFinder class not yet implemented in basehat/line_finder.py
 # from basehat import LineFinder
 
-# Initialize motion controller with same settings as before
+# Create shared sensors instance
+sensors = SensorInput(
+    imu=False,  # Not needed for mobility-only test
+    ultrasonic=True,
+    ultrasonic_pin=26,
+)
+
+# Initialize motion controller with shared sensors
 controller = MotionController(
     front_motor="A",
     turn_motor="B",
-    ultrasonic_pin=26,
+    sensors=sensors,
     slowdown_distance=30.0,
     stopping_distance=15.0,
     forward_speed=20,

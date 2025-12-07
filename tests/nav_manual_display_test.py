@@ -13,12 +13,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio
 from fixtures import (
+    create_sensors, SensorConfig,
     create_navigator, NavigationConfig,
     create_motion_controller, MobilityConfig
 )
 from ui.navigation_display import NavigationDisplay
 
 # ============ CONFIGURATION ============
+sensor_config = SensorConfig(
+    imu=True,
+    ultrasonic=True,
+    ultrasonic_pin=26,
+)
+
 nav_config = NavigationConfig(
     update_interval=0.1,
     log_state=True,
@@ -34,7 +41,6 @@ nav_config = NavigationConfig(
 mobility_config = MobilityConfig(
     front_motor="A",
     turn_motor="B",
-    ultrasonic_pin=26,
     slowdown_distance=30.0,
     stopping_distance=15.0,
     forward_speed=20,
@@ -56,8 +62,12 @@ ENABLE_NAVIGATION = True
 ENABLE_DISPLAY = True
 # =======================================
 
-motion = create_motion_controller(mobility_config)
-navigator = create_navigator(nav_config, motion_controller=motion)
+# Create shared sensors instance
+sensors = create_sensors(sensor_config)
+
+# Create motion controller and navigator with shared sensors
+motion = create_motion_controller(mobility_config, sensors=sensors)
+navigator = create_navigator(nav_config, sensors=sensors, motion_controller=motion)
 display = NavigationDisplay(
     width=display_config["width"],
     height=display_config["height"],
