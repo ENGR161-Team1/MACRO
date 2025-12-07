@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `ColorSensor` support in `SensorInput` via Build HAT
+- `color_sensor` and `color_sensor_port` parameters for initialization
+- `get_color()` method returning detected color name
+- `is_black()` method returning 1 for black, 0 for other colors
+- `has_color_sensor()` availability check
+
 ### Deprecated
 - `HallSensor` removed from `basehat` exports - use IMU magnetometer instead
 - `get_hall_value()` method in `SensorInput` - use `get_mag()` or `get_magnetic_magnitude()`

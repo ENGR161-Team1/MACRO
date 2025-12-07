@@ -12,6 +12,7 @@ and provides a single point of access for navigation and mobility systems.
 
 import numpy as np
 from basehat import IMUSensor, UltrasonicSensor, Button
+from buildhat import ColorSensor
 
 
 class SensorInput:
@@ -30,6 +31,8 @@ class SensorInput:
         line_finders (bool): Enable line finder sensors (default: False)
         button_pin (int): GPIO pin for button (default: 22)
         button (bool): Enable button (default: False)
+        color_sensor_port (str): Build HAT port for color sensor (default: "D")
+        color_sensor (bool): Enable color sensor (default: False)
     
     Attributes:
         imu: IMUSensor instance or None
@@ -37,6 +40,7 @@ class SensorInput:
         line_finder_left: LineFinder instance or None
         line_finder_right: LineFinder instance or None
         button: Button instance or None
+        color_sensor: ColorSensor instance or None
     
     Note:
         Magnetic field detection uses the IMU magnetometer via get_mag()
@@ -76,6 +80,13 @@ class SensorInput:
             self.button_sensor = Button(button_pin)
         else:
             self.button_sensor = None
+        
+        # Color sensor (disabled by default)
+        if kwargs.get("color_sensor", False):
+            color_port = kwargs.get("color_sensor_port", "D")
+            self.color_sensor = ColorSensor(color_port)
+        else:
+            self.color_sensor = None
         
         # Cached sensor values
         self._accel = np.array([0.0, 0.0, 0.0])
@@ -175,6 +186,45 @@ class SensorInput:
             return False
         
         return self.button_sensor.is_pressed
+    
+    # -------------------------------------------------------------------------
+    # Color Sensor Methods
+    # -------------------------------------------------------------------------
+    
+    def get_color(self):
+        """
+        Get detected color name from color sensor.
+        
+        Returns:
+            str: Color name (e.g., "black", "white", "red", etc.) or "none"
+        """
+        if self.color_sensor is None:
+            return "none"
+        
+        try:
+            return self.color_sensor.get_color()
+        except:
+            return "none"
+    
+    def is_black(self):
+        """
+        Check if color sensor detects black.
+        
+        Returns:
+            int: 1 if black detected, 0 otherwise
+        """
+        if self.color_sensor is None:
+            return 0
+        
+        try:
+            color = self.color_sensor.get_color()
+            return 1 if color == "black" else 0
+        except:
+            return 0
+    
+    def has_color_sensor(self):
+        """Check if color sensor is available."""
+        return self.color_sensor is not None
     
     # -------------------------------------------------------------------------
     # Hall Sensor Methods (DEPRECATED - use IMU magnetometer instead)
