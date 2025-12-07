@@ -1,0 +1,46 @@
+# Mobility-only test (no navigation)
+# Use: python tests/test.py tests/configs/mobility_only.toml
+
+[features]
+navigation = false
+mobility = true
+display = false
+safety_ring = true
+manual_control = true
+autonomous = false
+payload = true
+color_sensor = false
+magnetism = false
+
+[sensors]
+imu = false
+ultrasonic = true
+line_finders = false
+button = false
+color_sensor = false
+
+[sensors.pins]
+ultrasonic = 26
+
+[mobility]
+front_motor = "A"
+turn_motor = "B"
+
+[mobility.speed]
+forward = 20
+forward_slow = 10
+
+[mobility.safety]
+slowdown_distance = 30.0
+stopping_distance = 15.0
+
+[manual_control]
+turn_amount = 45
+max_turn = 100
+
+[payload]
+motor = "C"
+speed = 2
+
+[test]
+verbose = true

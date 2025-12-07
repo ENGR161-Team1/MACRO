@@ -1,0 +1,49 @@
+# Manual control with display
+# Use: python tests/test.py tests/configs/manual_display.toml
+
+[features]
+navigation = true
+mobility = true
+display = true
+safety_ring = false
+manual_control = true
+autonomous = false
+payload = false
+color_sensor = false
+magnetism = false
+
+[sensors]
+imu = true
+ultrasonic = true
+
+[sensors.pins]
+ultrasonic = 26
+
+[navigation]
+update_interval = 0.1
+log_state = true
+print_state = false
+
+[navigation.calibration]
+enabled = true
+samples = 50
+
+[mobility]
+front_motor = "A"
+turn_motor = "B"
+
+[mobility.speed]
+forward = 20
+forward_slow = 10
+
+[display]
+width = 800
+height = 800
+scale = 50.0
+
+[manual_control]
+turn_amount = 45
+max_turn = 100
+
+[test]
+verbose = true

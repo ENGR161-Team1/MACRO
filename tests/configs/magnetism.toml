@@ -1,0 +1,32 @@
+# Magnetism test (magnetic field monitoring)
+# Use: python tests/test.py tests/configs/magnetism.toml
+
+[features]
+navigation = true
+mobility = false
+display = false
+safety_ring = false
+manual_control = false
+autonomous = false
+payload = false
+color_sensor = false
+magnetism = true
+
+[sensors]
+imu = true
+ultrasonic = false
+line_finders = false
+button = false
+color_sensor = false
+
+[navigation]
+update_interval = 0.1
+log_state = false
+print_state = false
+
+[navigation.calibration]
+enabled = true
+samples = 50
+
+[test]
+verbose = true

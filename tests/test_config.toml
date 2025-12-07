@@ -1,0 +1,185 @@
+# MACRO Test Configuration
+# Toggle features to customize test behavior
+
+# =============================================================================
+# FEATURES - Toggle systems on/off
+# =============================================================================
+
+[features]
+# Core systems
+navigation = true       # Position tracking via IMU
+mobility = true         # Motor control
+display = true          # Visual navigation display
+safety_ring = true      # Ultrasonic obstacle avoidance
+
+# Control modes (only one should be true)
+manual_control = false  # Keyboard w/a/s/d control
+autonomous = true       # Automatic forward movement
+
+# Additional features
+payload = false         # Payload motor control
+color_sensor = false    # Color detection
+magnetism = false       # Magnetic field monitoring
+
+# =============================================================================
+# SENSORS
+# =============================================================================
+
+[sensors]
+imu = true
+ultrasonic = true
+line_finders = false
+button = false
+color_sensor = false
+
+[sensors.pins]
+ultrasonic = 26
+line_finder_left = 16
+line_finder_right = 5
+button = 22
+
+[sensors.ports]
+color_sensor = "D"
+
+# =============================================================================
+# NAVIGATION
+# =============================================================================
+
+[navigation]
+update_interval = 0.1   # seconds
+log_state = true        # Save state history
+print_state = false     # Print to console (disable if using display)
+print_fields = ["position", "velocity"]
+
+[navigation.calibration]
+enabled = true
+samples = 50
+delay = 0.02
+
+[navigation.drift_reduction]
+velocity_decay = 0.04
+accel_threshold = 0.05
+motor_velocity_threshold = 1.0
+
+[navigation.initial]
+position = [0.0, 0.0, 0.0]
+orientation = [0.0, 0.0, 0.0]
+
+# =============================================================================
+# MOBILITY
+# =============================================================================
+
+[mobility]
+front_motor = "A"
+turn_motor = "B"
+
+[mobility.speed]
+forward = 20
+forward_slow = 10
+reverse = -20
+
+[mobility.safety]
+slowdown_distance = 30.0
+stopping_distance = 15.0
+
+# =============================================================================
+# DISPLAY
+# =============================================================================
+
+[display]
+width = 800
+height = 800
+scale = 50.0            # pixels per meter
+
+[display.world]
+min = -10.0
+max = 10.0
+
+# =============================================================================
+# MANUAL CONTROL
+# =============================================================================
+
+[manual_control]
+turn_amount = 45        # degrees per a/d press
+max_turn = 100          # max turn angle from center
+
+# =============================================================================
+# PAYLOAD
+# =============================================================================
+
+[payload]
+motor = "C"
+speed = 2
+
+# =============================================================================
+# TEST SETTINGS
+# =============================================================================
+
+[test]
+# Test duration (0 = run until interrupted)
+duration = 0
+verbose = true
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+
+[logging]
+# Enable logging to file
+enabled = true
+# Log file path (relative to project root, or absolute)
+file = "logs/test_run.log"
+# Log format: "csv", "json", or "text"
+format = "csv"
+# What to log
+log_position = true
+log_velocity = true
+log_orientation = true
+log_acceleration = true
+log_magnetic_field = false
+log_motor_velocity = true
+log_distance = false
+# Timestamp format
+timestamp_format = "elapsed"  # "elapsed", "absolute", or "iso"
+
+# =============================================================================
+# CONSOLE OUTPUT
+# =============================================================================
+
+[console]
+# Print readings to console
+enabled = false         # Set true if no display
+# Update rate for console output (seconds)
+interval = 0.2
+# What to print
+print_position = true
+print_velocity = true
+print_orientation = false
+print_acceleration = false
+print_magnetic_field = false
+print_motor_velocity = false
+print_distance = false
+# Format: "compact" (one line) or "detailed" (multiple lines)
+format = "compact"
+# Precision (decimal places)
+precision = 3
+
+# =============================================================================
+# SENSOR READINGS
+# =============================================================================
+
+[readings]
+# IMU readings
+imu_interval = 0.1          # How often to read IMU (seconds)
+imu_average_samples = 1     # Number of samples to average (1 = no averaging)
+
+# Ultrasonic readings
+ultrasonic_interval = 0.1   # How often to read distance
+ultrasonic_average_samples = 3
+
+# Color sensor readings
+color_interval = 0.2        # How often to read color
+
+# Magnetic field readings
+magnetic_interval = 0.2     # How often to read magnetic field
+

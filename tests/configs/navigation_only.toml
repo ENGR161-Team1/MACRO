@@ -1,0 +1,56 @@
+# Navigation-only test (no motors)
+# Use: python tests/test.py tests/configs/navigation_only.toml
+
+[features]
+navigation = true
+mobility = false
+display = false
+safety_ring = false
+manual_control = false
+autonomous = false
+payload = false
+color_sensor = false
+magnetism = false
+
+[sensors]
+imu = true
+ultrasonic = false
+line_finders = false
+button = false
+color_sensor = false
+
+[navigation]
+update_interval = 0.1
+log_state = false
+print_state = false
+
+[navigation.calibration]
+enabled = true
+samples = 50
+
+[navigation.drift_reduction]
+velocity_decay = 0.04
+accel_threshold = 0.05
+
+[logging]
+enabled = true
+file = "logs/navigation_only.csv"
+format = "csv"
+log_position = true
+log_velocity = true
+log_orientation = true
+log_acceleration = true
+log_magnetic_field = false
+log_motor_velocity = false
+
+[console]
+enabled = true
+interval = 0.2
+print_position = true
+print_velocity = true
+print_orientation = false
+format = "compact"
+precision = 3
+
+[test]
+verbose = true
