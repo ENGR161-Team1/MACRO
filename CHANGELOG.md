@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deprecated
+- `HallSensor` removed from `basehat` exports - use IMU magnetometer instead
+- `get_hall_value()` method in `SensorInput` - use `get_mag()` or `get_magnetic_magnitude()`
+- `has_hall()` method in `SensorInput` - use `has_imu()` with magnetometer methods
+
 ---
 
 ## [0.8.2] - 2024-12-06

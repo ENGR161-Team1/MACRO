@@ -11,7 +11,7 @@ and provides a single point of access for navigation and mobility systems.
 """
 
 import numpy as np
-from basehat import IMUSensor, UltrasonicSensor, Button, HallSensor
+from basehat import IMUSensor, UltrasonicSensor, Button
 
 
 class SensorInput:
@@ -30,8 +30,6 @@ class SensorInput:
         line_finders (bool): Enable line finder sensors (default: False)
         button_pin (int): GPIO pin for button (default: 22)
         button (bool): Enable button (default: False)
-        hall_pin (int): GPIO pin for hall sensor (default: 12)
-        hall (bool): Enable hall sensor (default: False)
     
     Attributes:
         imu: IMUSensor instance or None
@@ -39,7 +37,10 @@ class SensorInput:
         line_finder_left: LineFinder instance or None
         line_finder_right: LineFinder instance or None
         button: Button instance or None
-        hall: HallSensor instance or None
+    
+    Note:
+        Magnetic field detection uses the IMU magnetometer via get_mag()
+        and get_magnetic_magnitude() methods.
     """
     
     def __init__(self, **kwargs):
@@ -75,13 +76,6 @@ class SensorInput:
             self.button_sensor = Button(button_pin)
         else:
             self.button_sensor = None
-        
-        # Hall sensor (disabled by default)
-        if kwargs.get("hall", False):
-            hall_pin = kwargs.get("hall_pin", 12)
-            self.hall = HallSensor(hall_pin)
-        else:
-            self.hall = None
         
         # Cached sensor values
         self._accel = np.array([0.0, 0.0, 0.0])
@@ -183,20 +177,23 @@ class SensorInput:
         return self.button_sensor.is_pressed
     
     # -------------------------------------------------------------------------
-    # Hall Sensor Methods
+    # Hall Sensor Methods (DEPRECATED - use IMU magnetometer instead)
     # -------------------------------------------------------------------------
     
     def get_hall_value(self):
         """
-        Get hall sensor reading.
+        DEPRECATED: Hall sensor removed. Use get_mag() or get_magnetic_magnitude() instead.
         
         Returns:
-            bool or int: Hall sensor value
+            bool: Always returns False
         """
-        if self.hall is None:
-            return False
-        
-        return self.hall.read()
+        import warnings
+        warnings.warn(
+            "get_hall_value() is deprecated. Use get_mag() or get_magnetic_magnitude() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return False
     
     # -------------------------------------------------------------------------
     # Line Finder Methods
@@ -243,8 +240,19 @@ class SensorInput:
         return self.button_sensor is not None
     
     def has_hall(self):
-        """Check if hall sensor is available."""
-        return self.hall is not None
+        """
+        DEPRECATED: Hall sensor removed. Use has_imu() and get_mag() instead.
+        
+        Returns:
+            bool: Always returns False
+        """
+        import warnings
+        warnings.warn(
+            "has_hall() is deprecated. Use has_imu() and get_mag() for magnetic sensing.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return False
     
     def has_line_finders(self):
         """Check if line finders are available."""
