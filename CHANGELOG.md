@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2025-12-07
+
+### Added
+- Cargo motor support via Build HAT Motor class (port B)
+- `deploy()` async method for deploying cargo (+180 degrees)
+- `close()` async method for closing cargo bay (-180 degrees)
+- `deploying_cargo` field in `State` to track deployment status
+- Auto-deploy functionality: cargo automatically deploys on full detection, closes, and won't deploy again
+- `[cargo.motor]` section in `macro_config.toml` with `port`, `speed`, and `deploy_angle` settings
+
+### Changed
+- `MotionController.auto_line_follow()` now pauses front motor when `state.deploying_cargo` is True
+- `Cargo.deployed` field now serves dual purpose: tracks open state and prevents re-deployment after closing
+
+---
+
 ## [0.12.3] - 2025-12-07
 
 ### Added
