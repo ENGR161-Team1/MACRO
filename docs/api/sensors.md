@@ -1,9 +1,144 @@
 # Sensor APIs
 
-> Hardware sensor interfaces for Grove Base HAT
+> Hardware sensor interfaces for Grove Base HAT and Build HAT
 
 ```python
-from basehat import IMUSensor, UltrasonicSensor, LineFinder, HallSensor, Button
+from basehat import IMUSensor, UltrasonicSensor, LineFinder, Button
+from systems.sensors import SensorInput
+```
+
+---
+
+## SensorInput
+
+Centralized sensor management class providing async access to all sensors.
+
+### Constructor
+
+```python
+from systems.sensors import SensorInput
+
+sensors = SensorInput(
+    ultrasonic_pin=26,
+    button_pin=22,
+    line_left_pin=16,
+    line_right_pin=5,
+    color_sensor_port="D"
+)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ultrasonic_pin` | int | 26 | GPIO pin for ultrasonic sensor |
+| `button_pin` | int | 22 | GPIO pin for button |
+| `line_left_pin` | int | 16 | GPIO pin for left line finder |
+| `line_right_pin` | int | 5 | GPIO pin for right line finder |
+| `color_sensor_port` | str | "D" | Build HAT port for color sensor |
+
+### Async Methods
+
+All sensor methods are async and must be awaited.
+
+#### `async get_accel()`
+
+Read acceleration from IMU.
+
+```python
+ax, ay, az = await sensors.get_accel()
+```
+
+**Returns:** `tuple` (ax, ay, az) in m/s²
+
+#### `async get_gyro()`
+
+Read angular velocity from IMU.
+
+```python
+gx, gy, gz = await sensors.get_gyro()
+```
+
+**Returns:** `tuple` (gx, gy, gz) in degrees/second
+
+#### `async get_mag()`
+
+Read magnetic field from IMU.
+
+```python
+mx, my, mz = await sensors.get_mag()
+```
+
+**Returns:** `tuple` (mx, my, mz) in micro-tesla
+
+#### `async get_magnetic_magnitude()`
+
+Get total magnetic field strength.
+
+```python
+magnitude = await sensors.get_magnetic_magnitude()
+```
+
+**Returns:** `float` (magnitude in µT)
+
+#### `async get_distance()`
+
+Read distance from ultrasonic sensor.
+
+```python
+distance = await sensors.get_distance()
+```
+
+**Returns:** `float` (distance in cm)
+
+#### `async is_button_pressed()`
+
+Check button state.
+
+```python
+pressed = await sensors.is_button_pressed()
+```
+
+**Returns:** `bool`
+
+#### `async get_color()`
+
+Get detected color from color sensor.
+
+```python
+color = await sensors.get_color()
+```
+
+**Returns:** `str` (color name: "black", "white", "red", etc.)
+
+#### `async is_black()`
+
+Check if color sensor detects black.
+
+```python
+is_black = await sensors.is_black()
+```
+
+**Returns:** `int` (1 for black, 0 for other colors)
+
+#### `async get_line_left()` / `async get_line_right()`
+
+Read line finder values.
+
+```python
+left = await sensors.get_line_left()
+right = await sensors.get_line_right()
+```
+
+**Returns:** `bool` (True if line detected)
+
+### Sensor Availability Methods
+
+```python
+sensors.has_imu()         # True if IMU available
+sensors.has_ultrasonic()  # True if ultrasonic available
+sensors.has_button()      # True if button available
+sensors.has_line_left()   # True if left line finder available
+sensors.has_line_right()  # True if right line finder available
+sensors.has_color()       # True if color sensor available
 ```
 
 ---
@@ -120,33 +255,26 @@ if line_left.value:
 
 ---
 
-## HallSensor
+## HallSensor (Deprecated)
 
-Hall effect magnetic position sensor.
+> ⚠️ **Deprecated in v0.9.0**: Use `SensorInput.get_mag()` and `SensorInput.get_magnetic_magnitude()` instead.
 
-### Constructor
+Hall effect magnetic position sensor. This sensor has been deprecated in favor of the IMU magnetometer which provides more accurate 3-axis magnetic field readings.
+
+### Migration Guide
 
 ```python
+# Old (deprecated)
 from basehat import HallSensor
-
 hall = HallSensor(pin=12)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `pin` | int | GPIO pin number |
-
-### Methods
-
-#### `read()`
-
-Read magnetic field presence.
-
-```python
 value = hall.read()
-```
 
-**Returns:** `bool` or `int` (sensor reading)
+# New (recommended)
+from systems.sensors import SensorInput
+sensors = SensorInput()
+mx, my, mz = await sensors.get_mag()
+magnitude = await sensors.get_magnetic_magnitude()
+```
 
 ---
 
@@ -249,9 +377,9 @@ print(f"Position: {position}°")
 
 ## Color Sensor
 
-LEGO color sensor via Build HAT.
+LEGO color sensor via Build HAT. Best used through `SensorInput` for async access.
 
-### Constructor
+### Direct Usage
 
 ```python
 from buildhat import ColorSensor
@@ -270,7 +398,7 @@ color_name = color.get_color()
 print(f"Color: {color_name}")
 ```
 
-**Returns:** `str` (color name)
+**Returns:** `str` (color name: "black", "white", "red", "yellow", "green", "blue", etc.)
 
 #### `get_ambient_light()`
 
@@ -281,6 +409,22 @@ light = color.get_ambient_light()
 ```
 
 **Returns:** `int` (light level)
+
+### Via SensorInput (Recommended)
+
+```python
+from systems.sensors import SensorInput
+
+sensors = SensorInput(color_sensor_port="D")
+
+# Get color name
+color = await sensors.get_color()
+
+# Check for black (returns 1 or 0)
+is_black = await sensors.is_black()
+if is_black:
+    print("Black detected!")
+```
 
 ---
 

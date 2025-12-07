@@ -15,10 +15,14 @@ Motor control system with ultrasonic safety ring and encoder velocity tracking.
 ### Constructor
 
 ```python
+from systems.sensors import SensorInput
+
+sensors = SensorInput(ultrasonic_pin=26)
+
 controller = MotionController(
     front_motor="A",
     turn_motor="B",
-    ultrasonic_pin=26,
+    sensors=sensors,
     slowdown_distance=30.0,
     stopping_distance=15.0,
     forward_speed=20,
@@ -30,7 +34,7 @@ controller = MotionController(
 |-----------|------|---------|-------------|
 | `front_motor` | str | required | Build HAT port for front motor ("A"-"D") |
 | `turn_motor` | str | required | Build HAT port for turn motor ("A"-"D") |
-| `ultrasonic_pin` | int | 26 | GPIO pin for ultrasonic sensor |
+| `sensors` | SensorInput | None | Centralized sensor manager |
 | `slowdown_distance` | float | 30.0 | Distance to start slowing (cm) |
 | `stopping_distance` | float | 15.0 | Distance to stop (cm) |
 | `forward_speed` | int | 20 | Normal forward speed |
@@ -42,7 +46,7 @@ controller = MotionController(
 |-----------|------|-------------|
 | `front_motor` | Motor | Front drive motor instance |
 | `turn_motor` | Motor | Steering motor instance |
-| `ultrasonic` | UltrasonicSensor | Ultrasonic sensor instance |
+| `sensors` | SensorInput | Centralized sensor manager |
 | `forward_speed` | int | Current forward speed setting |
 | `forward_speed_slow` | int | Slow speed setting |
 | `slowdown_distance` | float | Slowdown threshold (cm) |
@@ -125,6 +129,21 @@ controller.straighten(central_pos=5)  # Return to offset center
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `central_pos` | float | 0 | Center position in degrees |
+
+---
+
+## Sensor Methods
+
+### `async get_distance()`
+
+Get distance from ultrasonic sensor.
+
+```python
+distance = await controller.get_distance()
+print(f"Distance: {distance:.1f} cm")
+```
+
+**Returns:** `float` (distance in cm, or 30.0 if no sensor)
 
 ---
 
@@ -228,12 +247,15 @@ controller.stop()
 
 ```python
 import asyncio
+from systems.sensors import SensorInput
 from systems.mobility_system import MotionController
+
+sensors = SensorInput(ultrasonic_pin=26)
 
 controller = MotionController(
     front_motor="A",
     turn_motor="B",
-    ultrasonic_pin=26,
+    sensors=sensors,
     slowdown_distance=30.0,
     stopping_distance=15.0
 )
