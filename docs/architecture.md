@@ -1,6 +1,6 @@
 # System Architecture
 
-> Overview of MARCO's modular system design
+> Overview of MACRO's modular system design
 
 ---
 
@@ -11,26 +11,74 @@
 │                        MACRO System                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
+│                      ┌──────────────┐                           │
+│                      │  Controller  │                           │
+│                      │ (controller) │                           │
+│                      └──────┬───────┘                           │
+│                             │                                    │
+│              ┌──────────────┼──────────────┐                    │
+│              │              │              │                     │
+│              ▼              ▼              ▼                     │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
-│  │   Sensors    │    │   Systems    │    │     UI       │       │
-│  │   (basehat)  │───▶│  (systems/)  │───▶│    (ui/)     │       │
+│  │    State     │◀───│   Systems    │───▶│   Sensors    │       │
+│  │ (state.py)   │    │  (systems/)  │    │  (basehat/)  │       │
 │  └──────────────┘    └──────────────┘    └──────────────┘       │
-│         │                   │                   │                │
-│         │                   │                   │                │
-│         ▼                   ▼                   ▼                │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
-│  │  IMUSensor   │    │ Navigation │    │NavigationDisp│       │
-│  │  Ultrasonic  │    │MotionControl │    │              │       │
-│  │  LineFinder  │    │              │    │              │       │
-│  └──────────────┘    └──────────────┘    └──────────────┘       │
+│         ▲                   │                                    │
+│         │                   ▼                                    │
+│         │            ┌──────────────┐                           │
+│         └────────────│   Motors     │                           │
+│                      │  (buildhat/) │                           │
+│                      └──────────────┘                           │
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                        Hardware Layer                            │
-│  ┌──────────────┐    ┌──────────────┐                           │
-│  │ Grove Base   │    │  Build HAT   │                           │
-│  │    HAT       │    │  (motors)    │                           │
-│  └──────────────┘    └──────────────┘                           │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
+│  │ Grove Base   │    │  Build HAT   │    │ LEGO Motors  │       │
+│  │    HAT       │    │  (motors)    │    │ (A, B, C)    │       │
+│  └──────────────┘    └──────────────┘    └──────────────┘       │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Core Components
+
+### Controller (`controller.py`)
+
+Central orchestrator that:
+- Loads configuration from `macro_config.toml`
+- Initializes all systems with shared State
+- Runs async control loops
+- Handles graceful shutdown
+
+```python
+controller = Controller()
+await controller.initialize()
+await controller.run()
+```
+
+### State (`systems/state.py`)
+
+Single source of truth for all robot state:
+
+```python
+@dataclass
+class State:
+    position: np.ndarray          # [x, y, z] in meters
+    velocity: np.ndarray          # [vx, vy, vz] in m/s
+    acceleration: np.ndarray      # [ax, ay, az] in m/s²
+    orientation: np.ndarray       # [yaw, pitch, roll] in degrees
+    magnetic_field: float         # Magnitude in µT
+    mag_delta: float              # Difference from baseline
+    cargo_level: str              # "none", "edge", "semi", "full"
+    deploying_cargo: bool         # Pauses motion when True
+    lf_left_value: float          # Left line finder
+    lf_right_value: float         # Right line finder
+    ultrasonic_distance: float    # Distance in cm
+    motor_position: float         # Front motor degrees
+    motor_velocity: float         # Front motor °/s
+    turn_position: float          # Turn motor degrees
+    # ... calibration flags and bias values
 ```
 
 ---
@@ -65,11 +113,11 @@ Core business logic and algorithms.
 
 | Module | Classes | Purpose |
 |--------|---------|---------|
+| `state.py` | `State` | Centralized state dataclass |
+| `sensors.py` | `SensorInput` | Sensor abstraction with update loop |
 | `navigation_system.py` | `Transformation`, `Location`, `Navigation` | 3D position tracking |
-| `mobility_system.py` | `MotionController` | Motor control with safety |
-| `sensors.py` | Various | Sensor abstraction |
-| `task_manager.py` | `TaskManager` | Task scheduling |
-| `thermal_system.py` | `ThermalSystem` | Temperature management |
+| `mobility_system.py` | `MotionController` | Motor control, line following, safety |
+| `cargo_system.py` | `Cargo` | Cargo detection and deployment |
 
 ### 4. UI Layer (`ui/`)
 
@@ -83,134 +131,73 @@ User interface and visualization.
 
 ## Data Flow
 
-### Navigation Pipeline
+### Sensor → State → Systems Pipeline
 
 ```
-IMU Sensor
-    │
-    ├─── getAccel() ──▶ [ax, ay, az] (m/s²)
-    │                        │
-    │                        ▼
-    │                 ┌─────────────┐
-    │                 │ Calibration │◀── accel_bias
-    │                 │   Bias      │
-    │                 └─────────────┘
-    │                        │
-    │                        ▼
-    │                 ┌─────────────┐
-    │                 │  Transform  │◀── orientation (yaw, pitch, roll)
-    │                 │ Local→Global│
-    │                 └─────────────┘
-    │                        │
-    │                        ▼
-    ├─── getGyro() ──▶ [gx, gy, gz] (°/s)
-    │                        │
-    │                        ▼
-    │                 ┌─────────────┐
-    │                 │ Integration │
-    │                 │   (dt)      │
-    │                 └─────────────┘
-    │                        │
-    │                        ▼
-    │                   orientation
-    │                        │
-    └─── getMag() ───▶ [mx, my, mz] (µT)
-                             │
-                             ▼
-                      magnetic_magnitude
-
-
-Motor Encoder
-    │
-    └─── get_position() ──▶ position (°)
-                                │
-                                ▼
-                         ┌─────────────┐
-                         │ Differentiate│
-                         │    (dt)      │
-                         └─────────────┘
-                                │
-                                ▼
-                          motor_velocity
-                                │
-                                ▼
-                         ┌─────────────┐
-                         │ Velocity    │
-                         │ Decay Check │
-                         └─────────────┘
-```
-
-### Motor Control Pipeline
-
-```
-User Command / Autonomous Logic
-            │
-            ▼
-    ┌───────────────┐
-    │MotionController│
-    └───────────────┘
-            │
-    ┌───────┴───────┐
-    │               │
-    ▼               ▼
-front_motor    turn_motor
-    │               │
-    ▼               ▼
-  start()      run_for_degrees()
-    │               │
-    └───────┬───────┘
-            │
-            ▼
-    ┌───────────────┐
-    │  Safety Ring  │◀── Ultrasonic Sensor
-    │   (async)     │
-    └───────────────┘
-            │
-            ▼
-    ┌───────────────┐
-    │ Speed Control │
-    │ stop/slow/run │
-    └───────────────┘
-```
-
----
-
-## Class Relationships
-
-### Navigation System
-
-```
-Transformation
-       │
-       │ (composition)
+┌─────────────┐
+│ SensorInput │
+│  (sensors)  │
+└──────┬──────┘
+       │ Updates State directly
        ▼
-  Location
+┌─────────────┐
+│    State    │◀─── All systems read from State
+└──────┬──────┘
        │
-       │ (inheritance)
-       ▼
-  Navigation ◀───── MotionController (optional)
-       │
-       │ (composition)
-       ▼
-  NavigationDisplay
+   ┌───┴───┬───────────┬──────────────┐
+   ▼       ▼           ▼              ▼
+┌──────┐ ┌──────┐ ┌──────────┐ ┌───────────┐
+│ Nav  │ │Motion│ │  Cargo   │ │Controller │
+│      │ │Ctrl  │ │          │ │(print)    │
+└──────┘ └──────┘ └──────────┘ └───────────┘
 ```
 
-### Inheritance Hierarchy
+### Line Following State Machine
 
-```python
-# navigation_system.py
+```
+                    ┌─────────┐
+                    │ CENTER  │
+                    └────┬────┘
+         ┌───────────────┼───────────────┐
+         │               │               │
+    Left sensor     Both clear      Right sensor
+    triggers        (maintain)       triggers
+         │               │               │
+         ▼               │               ▼
+    ┌─────────┐          │          ┌─────────┐
+    │  RIGHT  │◀─────────┴─────────▶│  LEFT   │
+    └─────────┘                     └─────────┘
+         │                               │
+         │    (opposite sensor from      │
+         │     nothing → CENTER)         │
+         └───────────────────────────────┘
+```
 
-class Transformation:
-    """3D rotation and translation utilities"""
-    pass
+### Cargo Detection Flow
 
-class Location(Transformation):
-    """Position tracking with IMU"""
-    pass
-
-class Navigation(Location):
-    """Full navigation with logging and magnetic field"""
-    pass
+```
+Magnetometer
+      │
+      ▼
+┌─────────────┐
+│ mag_delta   │ = current - baseline
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐     ┌─────────────────────────┐
+│detect_cargo │────▶│ Thresholds:             │
+│   _level()  │     │  edge: 400 µT           │
+└──────┬──────┘     │  semi: 1000 µT          │
+       │            │  full: 3000 µT          │
+       ▼            └─────────────────────────┘
+┌─────────────┐
+│ Debounce    │ 5 consecutive "full" readings
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ Auto-deploy │ deploy() → close() → done
+└─────────────┘
 ```
 
 ---
@@ -219,69 +206,96 @@ class Navigation(Location):
 
 MACRO uses Python's `asyncio` for concurrent operations.
 
-### Concurrent Tasks
+### Controller Run Loop
 
 ```python
-async def main():
-    await asyncio.gather(
-        navigator.run_continuous_update(),   # Navigation loop
-        motion.start_safety_ring(),          # Safety monitoring
-        motion.update_motor_state(dt=0.1),   # Encoder tracking
-        display.run_continuous()             # UI updates
+async def run(self):
+    # Start concurrent tasks
+    line_follow_task = asyncio.create_task(
+        self.mobility.auto_line_follow()
     )
+    cargo_monitor_task = asyncio.create_task(
+        self.cargo.run_cargo_update_loop()
+    )
+    
+    # Main loop
+    while self._running:
+        await self.navigator.update_state(dt=update_interval)
+        if print_state:
+            self.print_state(timestamp, fields)
+        await asyncio.sleep(update_interval)
 ```
 
 ### Task Timing
 
-| Task | Typical Interval | Purpose |
-|------|-----------------|---------|
+| Task | Interval | Purpose |
+|------|----------|---------|
+| Sensor update | 50ms | Read all sensors |
 | Navigation update | 100ms | Position/orientation |
-| Motor state update | 100ms | Encoder velocity |
-| Safety ring check | 50ms | Obstacle detection |
+| Motor state update | 50ms | Encoder velocity |
+| Line following | 100ms | Turn adjustments |
+| Cargo monitoring | 100ms | Magnetic detection |
 | Display refresh | 100ms | UI rendering |
 
 ---
 
 ## Configuration Architecture
 
-### Test Fixtures (`tests/fixtures/`)
+### `macro_config.toml`
 
-Centralized configuration using dataclasses:
+All settings in a single TOML file:
+
+```toml
+[sensors]
+imu = true
+ultrasonic = true
+line_finders = true
+
+[mobility]
+front_motor = "A"
+turn_motor = "B"
+
+[mobility.speed]
+forward = 20
+turn = 20
+
+[cargo.motor]
+port = "C"
+speed = 100
+deploy_angle = 180
+
+[cargo.detection]
+required_consecutive = 5
+
+[navigation.update]
+print_state = true
+print_fields = ["all"]
+```
+
+### Config Dataclasses
 
 ```python
 @dataclass
-class NavigationConfig:
-    update_interval: float = 0.1
-    velocity_decay: float = 0.04
-    accel_threshold: float = 0.05
-    motor_velocity_threshold: float = 1.0
-    # ...
+class SensorConfig:
+    imu: bool = True
+    ultrasonic: bool = True
+    line_finders: bool = False
+    # ... pins and offsets
 
-@dataclass  
+@dataclass
 class MobilityConfig:
     front_motor: str = "A"
     turn_motor: str = "B"
-    ultrasonic_pin: int = 26
-    # ...
-```
+    forward_speed: int = 20
+    # ... speed and safety settings
 
-### Factory Functions
-
-```python
-def create_navigator(config, motion_controller=None):
-    """Create Navigation from config."""
-    return Navigation(
-        imu=IMUSensor(),
-        velocity_decay=config.velocity_decay,
-        motion_controller=motion_controller
-    )
-
-def create_motion_controller(config):
-    """Create MotionController from config."""
-    return MotionController(
-        front_motor=config.front_motor,
-        turn_motor=config.turn_motor
-    )
+@dataclass
+class CargoConfig:
+    motor_port: str = "C"
+    motor_speed: int = 100
+    deploy_angle: int = 180
+    required_detections: int = 5
+    # ... thresholds
 ```
 
 ---

@@ -13,14 +13,14 @@ This is the code for the third design project for Purdue's Engineering 161 Class
 ```
 MACRO/
 ├── main.py                 # Main entry point
-├── mobility_test.py        # Mobility system testing
+├── controller.py           # Central controller with config loading
+├── macro_config.toml       # Configuration file for all systems
 ├── pyproject.toml          # Project configuration
 ├── CHANGELOG.md            # Version history and changes
 │
 ├── basehat/                # Grove Base HAT sensor modules
 │   ├── button.py           # Button input handling
 │   ├── hall_sensor.py      # Hall effect sensor
-│   ├── HallSensor.py       # Hall sensor (alternate implementation)
 │   ├── imu_sensor.py       # IMU sensor for orientation
 │   ├── line_finder.py      # Line detection sensor
 │   └── UltrasonicSensor.py # Ultrasonic distance sensor
@@ -36,9 +36,11 @@ MACRO/
 │   └── data/               # Firmware and version data
 │
 ├── systems/                # Core rover systems
-│   ├── mobility_system.py  # Movement and motor control
-│   ├── navigation_system.py# 3D navigation with IMU integration
+│   ├── state.py            # Centralized State dataclass
 │   ├── sensors.py          # Sensor input abstraction
+│   ├── mobility_system.py  # Movement, line following, and motor control
+│   ├── navigation_system.py# 3D navigation with IMU integration
+│   ├── cargo_system.py     # Cargo detection and deployment
 │   ├── task_manager.py     # Task scheduling
 │   └── thermal_system.py   # Thermal management
 │
@@ -46,14 +48,14 @@ MACRO/
 │   └── navigation_display.py # Real-time navigation visualization
 │
 ├── tests/                  # Test files
-│   ├── navigation_test.py      # Navigation-only test
-│   ├── nav-mobility_test.py    # Navigation + mobility test
-│   └── navigation_display_test.py # Navigation + display test
+│   └── ...                 # Various test configurations
 │
 ├── docs/                   # Documentation
 │   ├── README.md           # Documentation index
-│   ├── API.md              # API reference
-│   └── HARDWARE.md         # Hardware setup guide
+│   ├── architecture.md     # System architecture
+│   ├── getting-started.md  # Setup guide
+│   ├── hardware.md         # Hardware setup guide
+│   └── api/                # API reference
 │
 └── poc/                    # Proof of Concept experiments
     ├── poc_example.py      # Navigation POC with PID control
@@ -62,17 +64,31 @@ MACRO/
 
 ## Features
 
-### Navigation System (v0.7.0)
+### Controller (v0.12.0+)
+- **Centralized Configuration**: All settings from `macro_config.toml`
+- **Shared State**: Single `State` dataclass across all systems
+- **Graceful Shutdown**: Proper cleanup on exit (straighten wheels, stop motors)
+- **Configurable State Display**: Print selected fields to console
+
+### Navigation System
 - **3D Position Tracking**: Dead reckoning with IMU integration
 - **IMU Calibration**: Automatic bias measurement for accelerometer, gyroscope, and magnetometer
 - **Magnetic Field Sensing**: Real-time magnetic field magnitude detection
 - **Drift Reduction**: Velocity decay and acceleration thresholding
-- **State Logging**: Timestamped logs of position, velocity, orientation, and magnetic field
+- **Sensor Position Tracking**: Calculate positions of all sensors relative to IMU
 
 ### Mobility System
 - **Motor Control**: LEGO Technic motors via Build HAT
+- **Line Following**: Automatic line following with state machine logic
 - **Safety Ring**: Ultrasonic obstacle detection with slowdown/stop zones
 - **Async Operation**: Non-blocking motor and sensor updates
+- **Cargo Pause**: Automatically pauses during cargo deployment
+
+### Cargo System (v0.12.4)
+- **Magnetic Cargo Detection**: Edge, semi, and full detection levels
+- **Auto-Deploy**: Automatically deploys on full cargo detection
+- **Debouncing**: Prevents false positives from motor EMF
+- **One-Time Deployment**: Deploys once then prevents re-deployment
 
 ### Navigation Display
 - **Real-time Visualization**: 2D grid with rover position and velocity arrow
@@ -84,14 +100,39 @@ MACRO/
 - **Raspberry Pi** with Grove Base HAT
 - **Raspberry Pi Build HAT** for LEGO motors
 - **Sensors**: IMU, Ultrasonic, Line Finder, Hall Effect, Button
-- **Motors**: LEGO Technic motors via Build HAT
+- **Motors**: LEGO Technic motors via Build HAT (front, turn, cargo)
 
 ## Getting Started
 
 1. Clone the repository
 2. Install dependencies: `pip install -e .`
-3. Connect hardware components
-4. Run: `python main.py`
+3. Configure `macro_config.toml` for your hardware setup
+4. Connect hardware components
+5. Run: `python main.py`
+
+## Configuration
+
+All settings are in `macro_config.toml`:
+
+```toml
+[sensors]
+imu = true
+ultrasonic = true
+line_finders = true
+
+[mobility]
+front_motor = "A"
+turn_motor = "B"
+
+[cargo.motor]
+port = "C"
+speed = 100
+deploy_angle = 180
+
+[navigation.update]
+print_state = true
+print_fields = ["all"]
+```
 
 ## Development
 
@@ -100,9 +141,6 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and recent changes.
 ### Branches
 
 - `main` - Stable, production-ready code
-- `systems` - Unified systems development (mobility, navigation, sensors)
-- `testing` - Test files and development
-- `documentation` - Documentation updates
 
 ## License
 

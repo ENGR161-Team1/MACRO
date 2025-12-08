@@ -8,14 +8,46 @@
 
 | Module | Description |
 |--------|-------------|
+| [Controller](controller.md) | Central controller and configuration |
+| [State](state.md) | Centralized state dataclass |
 | [Navigation](navigation.md) | 3D position and orientation tracking |
-| [Mobility](mobility.md) | Motor control and safety features |
+| [Mobility](mobility.md) | Motor control, line following, and safety |
+| [Cargo](cargo.md) | Cargo detection and deployment |
 | [Display](display.md) | Real-time visualization |
 | [Sensors](sensors.md) | Hardware sensor interfaces |
 
 ---
 
 ## Quick Reference
+
+### Controller
+
+```python
+from controller import Controller
+
+controller = Controller()  # Loads macro_config.toml
+await controller.initialize()
+await controller.run()
+```
+
+| Class | Purpose |
+|-------|---------|
+| `Controller` | Central controller that manages all systems |
+| `Config` | Complete configuration dataclass |
+| `SensorConfig` | Sensor configuration |
+| `MobilityConfig` | Mobility configuration |
+| `NavigationConfig` | Navigation configuration |
+| `CargoConfig` | Cargo configuration |
+
+### State
+
+```python
+from systems.state import State
+```
+
+| Class | Purpose |
+|-------|---------|
+| `State` | Centralized state dataclass shared by all systems |
 
 ### Navigation System
 
@@ -27,7 +59,7 @@ from systems.navigation_system import Transformation, Location, Navigation
 |-------|---------|
 | `Transformation` | 3D rotation and translation matrices |
 | `Location` | Position tracking with IMU |
-| `Navigation` | Full navigation with logging and magnetic field |
+| `Navigation` | Full navigation with calibration |
 
 ### Mobility System
 
@@ -37,7 +69,17 @@ from systems.mobility_system import MotionController
 
 | Class | Purpose |
 |-------|---------|
-| `MotionController` | Motor control with safety ring and encoder tracking |
+| `MotionController` | Motor control with line following and safety ring |
+
+### Cargo System
+
+```python
+from systems.cargo_system import Cargo
+```
+
+| Class | Purpose |
+|-------|---------|
+| `Cargo` | Magnetic cargo detection and auto-deployment |
 
 ### Display System
 
@@ -53,10 +95,12 @@ from ui.navigation_display import NavigationDisplay
 
 ```python
 from basehat import IMUSensor, UltrasonicSensor, LineFinder, HallSensor, Button
+from systems.sensors import SensorInput
 ```
 
 | Class | Purpose |
 |-------|---------|
+| `SensorInput` | Unified sensor abstraction with update loop |
 | `IMUSensor` | 9-axis IMU (accelerometer, gyroscope, magnetometer) |
 | `UltrasonicSensor` | Distance measurement |
 | `LineFinder` | Line detection |
@@ -67,37 +111,50 @@ from basehat import IMUSensor, UltrasonicSensor, LineFinder, HallSensor, Button
 
 ## Common Patterns
 
-### Async Navigation Loop
+### Controller-Based Usage (Recommended)
 
 ```python
 import asyncio
-from systems.navigation_system import Navigation
-from basehat import IMUSensor
-
-navigator = Navigation(imu=IMUSensor())
+from controller import Controller
 
 async def main():
-    await navigator.calibrate(samples=50)
-    await navigator.run_continuous_update(
-        update_interval=0.1,
-        log_state=True,
-        print_state=True
-    )
+    controller = Controller()
+    await controller.initialize()
+    await controller.run()
 
 asyncio.run(main())
 ```
 
-### Motor with Safety Ring
+### Manual System Setup
 
 ```python
 import asyncio
+from systems.state import State
+from systems.sensors import SensorInput
 from systems.mobility_system import MotionController
+from systems.cargo_system import Cargo
 
-motion = MotionController(front_motor="A", turn_motor="B")
+state = State()
+
+sensors = SensorInput(state=state, imu=True, ultrasonic=True)
+motion = MotionController(state=state, front_motor="A", turn_motor="B")
+cargo = Cargo(state=state, motor_port="C")
 
 async def main():
-    motion.start()
-    await motion.start_safety_ring()
+    # Start sensor updates
+    sensor_task = asyncio.create_task(sensors.run_sensor_update())
+    
+    # Calibrate
+    await sensors.calibrate_imu()
+    
+    # Run systems
+    await asyncio.gather(
+        motion.auto_line_follow(),
+        cargo.run_cargo_update_loop()
+    )
+
+asyncio.run(main())
+```
 
 asyncio.run(main())
 ```

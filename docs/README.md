@@ -2,7 +2,7 @@
 
 > Mars Autonomous Cargo Rover Operations - Complete Documentation
 
-**Current Version: 0.8.2**
+**Current Version: 0.12.4**
 
 ---
 
@@ -23,33 +23,12 @@
 
 ```python
 import asyncio
-from basehat import IMUSensor
-from systems.navigation_system import Navigation
-from systems.mobility_system import MotionController
-
-# Initialize hardware
-imu = IMUSensor()
-motion = MotionController(front_motor="A", turn_motor="B")
-
-# Create navigator with motor-based velocity decay
-navigator = Navigation(
-    imu=imu,
-    mode="degrees",
-    motion_controller=motion,
-    velocity_decay=0.04,
-    motor_velocity_threshold=1.0
-)
+from controller import Controller
 
 async def main():
-    # Calibrate while stationary
-    await navigator.calibrate(samples=50)
-    
-    # Run continuous updates
-    await navigator.run_continuous_update(
-        update_interval=0.1,
-        log_state=True,
-        print_state=True
-    )
+    controller = Controller()  # Loads macro_config.toml
+    await controller.initialize()
+    await controller.run()
 
 asyncio.run(main())
 ```
@@ -61,7 +40,9 @@ asyncio.run(main())
 ```
 MACRO/
 ├── main.py                     # Main entry point
-├── pyproject.toml              # Project configuration (v0.8.2)
+├── controller.py               # Central controller with config loading
+├── macro_config.toml           # Configuration file for all systems
+├── pyproject.toml              # Project configuration (v0.12.4)
 ├── CHANGELOG.md                # Version history
 │
 ├── basehat/                    # Grove Base HAT sensors
@@ -77,45 +58,50 @@ MACRO/
 │   └── color.py                # Color sensor
 │
 ├── systems/                    # Core systems
+│   ├── state.py                # Centralized State dataclass
+│   ├── sensors.py              # Sensor abstraction (SensorInput)
 │   ├── navigation_system.py    # 3D navigation (Transformation, Location, Navigation)
 │   ├── mobility_system.py      # Motor control (MotionController)
-│   ├── sensors.py              # Sensor abstraction
-│   ├── task_manager.py         # Task scheduling
-│   └── thermal_system.py       # Thermal management
+│   └── cargo_system.py         # Cargo detection and deployment (Cargo)
 │
 ├── ui/                         # User interface
 │   └── navigation_display.py   # Real-time visualization (NavigationDisplay)
-│
-├── tests/                      # Test files
-│   ├── fixtures/               # Shared test configurations
-│   ├── navigation_test.py      # Navigation-only testing
-│   ├── mobility_test.py        # Mobility with manual/auto modes
-│   ├── nav_mobility_test.py    # Combined navigation + mobility
-│   └── navigation_display_test.py  # Full visualization test
 │
 └── docs/                       # Documentation (you are here)
 ```
 
 ---
 
-## 🔧 Key Features (v0.8.2)
+## 🔧 Key Features (v0.12.4)
+
+### Controller
+- **Centralized Config** - All settings from `macro_config.toml`
+- **Shared State** - Single `State` dataclass across all systems
+- **Graceful Shutdown** - Proper cleanup on exit
+- **Configurable Output** - `print_state(fields=["position", "velocity"])`
 
 ### Navigation System
 - **3D Position Tracking** - Dead reckoning with IMU integration
 - **Motor Encoder Velocity** - Uses motor position for reliable velocity decay
 - **Magnetic Field Sensing** - Real-time magnitude with calibration baseline
-- **Customizable State Output** - `print_state(fields=["position", "velocity"])`
+- **Sensor Position Tracking** - Calculate all sensor positions relative to IMU
 
 ### Mobility System
+- **Line Following** - Automatic line following with state machine
 - **Safety Ring** - Ultrasonic obstacle detection with slowdown/stop zones
 - **Motor Encoder Tracking** - Position and velocity from motor encoders
-- **Async Operation** - Non-blocking motor and sensor updates
+- **Cargo Pause** - Automatically pauses during cargo deployment
+
+### Cargo System
+- **Magnetic Detection** - Edge, semi, and full cargo detection levels
+- **Auto-Deploy** - Automatically deploys on full cargo detection
+- **Debouncing** - Prevents false positives from motor EMF
+- **One-Time Deploy** - Deploys once then prevents re-deployment
 
 ### Navigation Display
 - **Dynamic Scaling** - Auto-adjusts to window size and world bounds
 - **Zoom Controls** - Mouse wheel, +/- keys, programmatic zoom
 - **Magnetic Indicator** - Ring around rover showing field intensity
-- **Resizable Window** - Adjustable world bounds (-10m to 10m default)
 
 ---
 
@@ -125,14 +111,19 @@ MACRO/
 
 | Module | Classes | Description |
 |--------|---------|-------------|
+| `controller` | `Controller`, `Config` | Central controller with config loading |
+| `state` | `State` | Centralized state dataclass |
+| `sensors` | `SensorInput` | Hardware sensor abstraction |
 | `navigation_system` | `Transformation`, `Location`, `Navigation` | 3D position and orientation tracking |
-| `mobility_system` | `MotionController` | Motor control with safety features |
+| `mobility_system` | `MotionController` | Motor control with line following |
+| `cargo_system` | `Cargo` | Cargo detection and deployment |
 | `navigation_display` | `NavigationDisplay` | Real-time visualization |
 
 ### API Reference
 
 - [Navigation System API](api/navigation.md)
 - [Mobility System API](api/mobility.md)
+- [Cargo System API](api/cargo.md)
 - [Display System API](api/display.md)
 - [Sensor APIs](api/sensors.md)
 
@@ -150,7 +141,7 @@ MACRO/
 |----------|------|
 | Main README | [../README.md](../README.md) |
 | Changelog | [../CHANGELOG.md](../CHANGELOG.md) |
-| Contributing | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Configuration | [../macro_config.toml](../macro_config.toml) |
 | License | [../LICENSE](../LICENSE) |
 
 ---
@@ -159,10 +150,11 @@ MACRO/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 0.8.2 | 2024-12-06 | Dynamic zoom, magnetic ring indicator |
-| 0.8.1 | 2024-12-06 | Motor velocity display, gradient range fix |
-| 0.8.0 | 2024-12-06 | Motor encoder velocity tracking, test fixtures |
-| 0.7.1 | 2024-12-06 | Magnetic gradient display background |
-| 0.7.0 | 2024-12-06 | Magnetic field sensing, async updates |
+| 0.12.4 | 2025-12-07 | Cargo debouncing, deployment blocking fix, line following improvements |
+| 0.12.3 | 2025-12-07 | Graceful shutdown sequence |
+| 0.12.2 | 2025-12-07 | LineFinder integration fix |
+| 0.12.1 | 2025-12-07 | Line follow fix, turn_position tracking |
+| 0.12.0 | 2025-12-07 | Centralized config, CargoConfig, print_state in controller |
+| 0.11.0 | 2025-12-07 | State dataclass, sensor position tracking |
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete history.

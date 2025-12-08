@@ -1,6 +1,6 @@
 # Mobility System API
 
-> Motor control with safety features and encoder tracking
+> Motor control with line following, safety features, and encoder tracking
 
 ```python
 from systems.mobility_system import MotionController
@@ -10,35 +10,35 @@ from systems.mobility_system import MotionController
 
 ## MotionController
 
-Motor control system with ultrasonic safety ring and encoder velocity tracking.
+Motor control system with line following, ultrasonic safety ring, and encoder tracking.
 
 ### Constructor
 
 ```python
-from systems.sensors import SensorInput
-
-sensors = SensorInput(ultrasonic_pin=26)
-
 controller = MotionController(
     front_motor="A",
     turn_motor="B",
-    sensors=sensors,
+    state=state,
     slowdown_distance=30.0,
     stopping_distance=15.0,
     forward_speed=20,
-    forward_speed_slow=10
+    forward_speed_slow=10,
+    turn_speed=20,
+    max_turn=100
 )
 ```
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `front_motor` | str | required | Build HAT port for front motor ("A"-"D") |
-| `turn_motor` | str | required | Build HAT port for turn motor ("A"-"D") |
-| `sensors` | SensorInput | None | Centralized sensor manager |
-| `slowdown_distance` | float | 30.0 | Distance to start slowing (cm) |
-| `stopping_distance` | float | 15.0 | Distance to stop (cm) |
-| `forward_speed` | int | 20 | Normal forward speed |
-| `forward_speed_slow` | int | 10 | Reduced speed in slowdown zone |
+| `front_motor` | str | `"A"` | Build HAT port for front motor |
+| `turn_motor` | str | `"B"` | Build HAT port for turn motor |
+| `state` | State | required | Centralized state object |
+| `slowdown_distance` | float | `30.0` | Distance to start slowing (cm) |
+| `stopping_distance` | float | `15.0` | Distance to stop (cm) |
+| `forward_speed` | int | `20` | Normal forward speed |
+| `forward_speed_slow` | int | `10` | Reduced speed in slowdown zone |
+| `turn_speed` | int | `20` | Turn motor speed |
+| `max_turn` | int | `100` | Maximum turn angle from center |
 
 ### Attributes
 
@@ -46,14 +46,13 @@ controller = MotionController(
 |-----------|------|-------------|
 | `front_motor` | Motor | Front drive motor instance |
 | `turn_motor` | Motor | Steering motor instance |
-| `sensors` | SensorInput | Centralized sensor manager |
-| `forward_speed` | int | Current forward speed setting |
-| `forward_speed_slow` | int | Slow speed setting |
-| `slowdown_distance` | float | Slowdown threshold (cm) |
-| `stopping_distance` | float | Stop threshold (cm) |
-| `motor_position` | float | Current motor encoder position (°) |
-| `motor_velocity` | float | Current motor velocity (°/s) |
-| `_prev_position` | float | Previous encoder position |
+| `state` | State | Shared state object |
+| `central_pos` | float | Center position for steering |
+| `moving` | bool | Whether robot is currently moving |
+| `current_speed` | int | Current speed setting |
+| `line_state` | str | Current line following state ("left", "center", "right") |
+| `prev_left_in` | bool | Previous left line finder value |
+| `prev_right_in` | bool | Previous right line finder value |
 
 ---
 
@@ -68,10 +67,6 @@ controller.start()  # Use default forward_speed
 controller.start(speed=15)  # Custom speed
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `speed` | int | None | Speed to use (None = forward_speed) |
-
 ### `stop()`
 
 Stop all motors immediately.
@@ -80,74 +75,91 @@ Stop all motors immediately.
 controller.stop()
 ```
 
-### `reverse(speed=None)`
+### `async reverse()`
 
 Start front motor in reverse.
 
 ```python
-controller.reverse()  # Use default speed
-controller.reverse(speed=10)  # Custom speed
+await controller.reverse()
+```
+
+---
+
+## Turning Methods
+
+### `async turn_left(amount=20)`
+
+Turn left by a specified amount if within limits.
+
+```python
+await controller.turn_left(20)  # Turn 20° left
 ```
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `speed` | int | None | Speed to use (None = forward_speed) |
+| `amount` | int | `20` | Degrees to turn |
 
-### `turn_left(degrees)`
+### `async turn_right(amount=20)`
 
-Turn steering motor left by specified degrees.
-
-```python
-controller.turn_left(45)  # Turn 45° left
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `degrees` | float | Degrees to turn |
-
-### `turn_right(degrees)`
-
-Turn steering motor right by specified degrees.
+Turn right by a specified amount if within limits.
 
 ```python
-controller.turn_right(45)  # Turn 45° right
+await controller.turn_right(20)  # Turn 20° right
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `degrees` | float | Degrees to turn |
+### `async turn_left_start()`
 
-### `straighten(central_pos=0)`
-
-Return steering to center position.
+Start turning left continuously.
 
 ```python
-controller.straighten()  # Return to 0
-controller.straighten(central_pos=5)  # Return to offset center
+await controller.turn_left_start()
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `central_pos` | float | 0 | Center position in degrees |
+### `async turn_right_start()`
+
+Start turning right continuously.
+
+```python
+await controller.turn_right_start()
+```
+
+### `async stop_turn()`
+
+Stop the turn motor.
+
+```python
+await controller.stop_turn()
+```
+
+### `async straighten()`
+
+Straighten wheels back to central position.
+
+```python
+await controller.straighten()
+```
+
+### `async recalibrate_center()`
+
+Set current turn position as the new center.
+
+```python
+await controller.recalibrate_center()
+```
 
 ---
 
-## Sensor Methods
+## Safety Methods
 
-### `async get_distance()`
+### `get_distance()`
 
-Get distance from ultrasonic sensor.
+Get distance from ultrasonic sensor via State.
 
 ```python
-distance = await controller.get_distance()
-print(f"Distance: {distance:.1f} cm")
+distance = controller.get_distance()
 ```
 
-**Returns:** `float` (distance in cm, or 30.0 if no sensor)
-
----
-
-## Safety Ring Methods
+**Returns:** `float` - Distance in cm from `state.ultrasonic_distance`
 
 ### `async start_safety_ring()`
 
@@ -165,217 +177,153 @@ await controller.start_safety_ring()
 
 ### `async run_with_safety()`
 
-Convenience method to start motor and safety ring together.
+Start motor and safety ring together.
 
 ```python
 await controller.run_with_safety()
 ```
 
-Equivalent to:
+---
+
+## Line Following
+
+### `async auto_line_follow()`
+
+Automatically follow a line using left and right line finders.
+
 ```python
-controller.start()
-await controller.start_safety_ring()
+await controller.auto_line_follow()
 ```
+
+**Features:**
+- Combines safety monitoring with line following
+- Reads line finder values from State
+- Pauses when `state.deploying_cargo` is True
+- Uses state machine for smooth tracking
+
+**Line State Machine:**
+
+| State | Meaning | Action |
+|-------|---------|--------|
+| `"left"` | Robot is to the left of line | Turn right |
+| `"center"` | Robot is centered on line | Straighten |
+| `"right"` | Robot is to the right of line | Turn left |
+
+**Transition Logic:**
+
+When a sensor triggers from both clear:
+- If previous state was opposite side → transition to `"center"`
+- Otherwise → transition to opposite side
 
 ---
 
-## Encoder Tracking Methods
+## Encoder Tracking
 
-### `async update_motor_state(dt)`
+### `async update_motor_state()`
 
-Update motor position and velocity from encoder.
+Update motor encoder state in State.
 
 ```python
-await controller.update_motor_state(dt=0.1)
+await controller.update_motor_state()
 ```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `dt` | float | Time step in seconds |
 
 **Updates:**
-- `motor_position` - Current encoder position (°)
-- `motor_velocity` - Calculated velocity (°/s)
+- `state.motor_position` - Front motor position (°)
+- `state.motor_velocity` - Front motor velocity (°/s)
+- `state.turn_position` - Turn motor position (°)
 
-### `async get_velocity()`
+### `async run_update_loop(update_interval=0.1)`
 
-Get current motor velocity.
-
-```python
-velocity = await controller.get_velocity()
-print(f"Motor velocity: {velocity:.2f} °/s")
-```
-
-**Returns:** `float` (velocity in degrees/second)
-
-### `get_position()`
-
-Get current motor encoder position.
+Continuously update motor state at specified intervals.
 
 ```python
-position = controller.get_position()
-print(f"Motor position: {position:.2f}°")
+await controller.run_update_loop(update_interval=0.05)
 ```
-
-**Returns:** `float` (position in degrees)
 
 ---
 
-## Examples
+## Usage Examples
 
 ### Basic Motor Control
 
 ```python
 from systems.mobility_system import MotionController
+from systems.state import State
 
+state = State()
 controller = MotionController(
     front_motor="A",
-    turn_motor="B"
+    turn_motor="B",
+    state=state
 )
 
 # Start forward
 controller.start()
 
-# Turn left 45°
-controller.turn_left(45)
+# Turn left
+await controller.turn_left(45)
 
 # Stop
 controller.stop()
 ```
 
-### With Safety Ring
+### With Line Following
 
 ```python
 import asyncio
+from systems.state import State
 from systems.sensors import SensorInput
 from systems.mobility_system import MotionController
 
-sensors = SensorInput(ultrasonic_pin=26)
-
-controller = MotionController(
-    front_motor="A",
-    turn_motor="B",
-    sensors=sensors,
-    slowdown_distance=30.0,
-    stopping_distance=15.0
-)
+state = State()
+sensors = SensorInput(state=state, line_finders=True)
+controller = MotionController(state=state)
 
 async def main():
-    try:
-        await controller.run_with_safety()
-    except KeyboardInterrupt:
-        controller.stop()
+    # Start sensor updates
+    sensor_task = asyncio.create_task(sensors.run_sensor_update())
+    
+    # Run line following with safety
+    await controller.auto_line_follow()
 
 asyncio.run(main())
 ```
 
-### Motor Encoder Tracking
+### With Controller
 
 ```python
-import asyncio
-from systems.mobility_system import MotionController
-
-controller = MotionController(front_motor="A", turn_motor="B")
-
-async def track_motor():
-    while True:
-        await controller.update_motor_state(dt=0.1)
-        print(f"Position: {controller.motor_position:.1f}° "
-              f"Velocity: {controller.motor_velocity:.1f}°/s")
-        await asyncio.sleep(0.1)
+from controller import Controller
 
 async def main():
-    controller.start()
-    await track_motor()
-
-asyncio.run(main())
-```
-
-### Integration with Navigation
-
-```python
-import asyncio
-from basehat import IMUSensor
-from systems.navigation_system import Navigation
-from systems.mobility_system import MotionController
-
-async def main():
-    imu = IMUSensor()
-    motion = MotionController(front_motor="A", turn_motor="B")
+    controller = Controller()
+    await controller.initialize()
     
-    navigator = Navigation(
-        imu=imu,
-        motion_controller=motion,
-        motor_velocity_threshold=1.0
-    )
-    
-    await navigator.calibrate()
-    motion.start()
-    
-    async def update_motors():
-        while True:
-            await motion.update_motor_state(dt=0.1)
-            await asyncio.sleep(0.1)
-    
-    await asyncio.gather(
-        navigator.run_continuous_update(),
-        motion.start_safety_ring(),
-        update_motors()
-    )
-
-asyncio.run(main())
+    # auto_line_follow() starts automatically in run()
+    await controller.run()
 ```
 
 ---
 
-## Manual Control Example
+## State Integration
 
-From `tests/mobility_test.py`:
+The MotionController reads from and writes to State:
 
-```python
-async def manual_controller():
-    """Manual keyboard control."""
-    central_pos = controller.turn_motor.get_position()
-    
-    while True:
-        command = input("Command: ").strip().lower()
-        
-        if command == "w":
-            controller.start()
-        elif command == "s":
-            controller.stop()
-        elif command == "r":
-            controller.reverse()
-        elif command == "a":
-            controller.turn_left(45)
-        elif command == "d":
-            controller.turn_right(45)
-        elif command == "q":
-            controller.straighten(central_pos)
-        elif command == "x":
-            break
-```
+**Reads:**
+- `state.ultrasonic_distance` - For safety ring
+- `state.lf_left_value` - Left line finder
+- `state.lf_right_value` - Right line finder
+- `state.deploying_cargo` - Pauses motion when True
 
-**Available Commands:**
-| Key | Action |
-|-----|--------|
-| `w` | Start forward |
-| `s` | Stop all motors |
-| `r` | Reverse |
-| `a` | Turn left 45° |
-| `d` | Turn right 45° |
-| `q` | Straighten wheels |
-| `+` | Increase speed |
-| `-` | Decrease speed |
-| `p` | Deploy payload |
-| `o` | Retract payload |
-| `l` | Stop payload |
-| `x` | Exit |
+**Writes:**
+- `state.motor_position` - Front motor encoder position
+- `state.motor_velocity` - Front motor velocity
+- `state.turn_position` - Turn motor position
 
 ---
 
 ## See Also
 
-- [Navigation System API](navigation.md)
-- [Display System API](display.md)
-- [Hardware Guide](../hardware.md)
+- [State API](state.md) - State dataclass
+- [Cargo API](cargo.md) - How `deploying_cargo` works
+- [Controller API](controller.md) - How mobility is initialized
+- [Architecture](../architecture.md) - System overview
