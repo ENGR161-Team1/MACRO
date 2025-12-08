@@ -30,4 +30,8 @@ class State:
     distance_traveled: float = 0.0  # Total distance traveled in cm
     turn_position: float = 0.0  # Turn motor position in degrees
     deploying_cargo: bool = False  # Whether cargo is being deployed (pauses motion)
+    cargo_number: int = 0 # Number of cargo spot needed to deploy
     mobility_enabled: bool = True  # Whether mobility is enabled (button toggle)
+    override: bool = False # Check if mobility is overridden.
+    override_start_distance: float = 0.0  # Distance when override was triggered
+    override_end_distance: float = 0.0  # Distance at which override ends

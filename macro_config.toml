@@ -31,8 +31,8 @@ imu_to_cargo = 0.36 # Horizontal distance from IMU to cargo deploy location in m
 [sensors.pins]
 # GPIO pin assignments for Grove Base HAT sensors
 ultrasonic = 26
-line_finder_left = 5
-line_finder_right = 16
+line_finder_left = 16
+line_finder_right = 5
 button = 22
 
 [sensors.ports]
@@ -47,6 +47,11 @@ color_sensor = "D"
 # Motor port assignments (Build HAT ports: A, B, C, D)
 front_motor = "A"
 turn_motor = "B"
+
+# Override mode - when true, robot applies override_mode for override_distance before resuming line following
+override = false
+override_mode = "straight"  # "straight" = go straight, "left" = max left turn, "right" = max right turn
+override_distance = 6.0     # Distance in cm to travel before resuming line following
 
 [mobility.speed]
 # Speed settings (range: -100 to 100)
@@ -66,7 +71,8 @@ stopping_distance = 15.0
 [mobility.line_follow]
 # Line following parameters
 wheel_ratio = 9.0  # Ratio between wheel motor degrees and turn motor degrees
-turn_amount = 20  # Degrees to turn when correcting line position
+turn_amount = 20  # Degrees to turn when correcting line position (dynamic mode)
+turn_mode = "fixed"  # "dynamic" = incremental turns, "fixed" = always turn to max
 update_interval = 0.2  # Seconds between line following updates
 
 # =============================================================================
@@ -128,6 +134,8 @@ full = 3000.0   # Threshold for full detection
 [cargo.detection]
 # Debounce settings to prevent false positives from motor EMF
 required_consecutive = 3  # Number of consecutive full detections needed before deploying
+target_cargo_number = 1   # Which cargo spot to deploy at (1-indexed)
+buffer_distance = 6.0     # Distance in cm to travel after non-target cargo before detecting again
 
 # =============================================================================
 # DISPLAY
@@ -138,6 +146,8 @@ required_consecutive = 3  # Number of consecutive full detections needed before 
 enabled = true
 # Update interval in milliseconds
 update_interval = 100
+# Run mode: "display" = print state, "control" = interactive override console
+run_mode = "display"
 
 [display.window]
 # Window dimensions

@@ -33,6 +33,15 @@ class Cargo:
         self.full_mag_threshold = kwargs.get("full_threshold", 3000)  # µT
         self.deploy_distance = kwargs.get("deploy_distance", 0.0) * 100 # In cm
 
+        # Target cargo configuration
+        self.target_cargo_number = kwargs.get("target_cargo_number", 1)
+        self.buffer_distance = kwargs.get("buffer_distance", 6.0)  # cm
+        
+        # Current cargo tracking
+        self.current_cargo_number = 0  # Incremented each time cargo is detected
+        self.buffer_end_distance = 0.0  # Distance at which buffer period ends
+        self.in_buffer_period = False  # True when in buffer zone after non-target cargo
+
         # Maximum magnetic field observed
         self.max_magnetic_field = 0.0
 
@@ -153,38 +162,55 @@ class Cargo:
         """Stop the cargo motor."""
         self.motor.stop()
     
+    def reset_detection(self):
+        """Reset detection values after passing a cargo spot."""
+        self.max_magnetic_field = 0.0
+        self.max_cargo_level = "none"
+        self.max_mag_distance = 0.0
+        print(f"Detection values reset for next cargo")
+    
     async def run_cargo_update_loop(self, update_interval: float = 0.1):
         """
         Continuously monitor cargo level and update State.
-        Auto-deploys cargo when magnetic field starts decreasing after detection.
+        Deploys cargo only at the target cargo number.
         
         Args:
             update_interval (float): Time between checks in seconds (default: 0.1)
         """
         while True:
+            # Check if in buffer period (waiting after non-target cargo)
+            if self.in_buffer_period:
+                if self.state.distance_traveled >= self.buffer_end_distance:
+                    self.in_buffer_period = False
+                    self.reset_detection()
+                    print(f"Buffer period ended, ready to detect cargo #{self.current_cargo_number + 1}")
+                await asyncio.sleep(update_interval)
+                continue
+            
             self.state.cargo_level = self.detect_cargo_level()
             current_field = self.state.magnetic_field
             
-            # Deploy when we've passed the maximum magnetic field
-            if not self.deployed:
-                if self.state.cargo_level == "full":
-                    print(f"Full cargo confirmed")
-                    await self.deploy_and_close()
-                elif self.state.cargo_level == "semi":
-                    if self.max_magnetic_field > current_field:
-                        print(f"Semi cargo confirmed")
+            # Update state with current cargo number
+            self.state.cargo_number = self.current_cargo_number
+            
+            # Detect cargo when magnetic field starts decreasing (passed the cargo)
+            if not self.deployed and self.max_cargo_level != "none":
+                # Check if we've passed the peak magnetic field
+                if self.max_magnetic_field > current_field and self.state.cargo_level == "none":
+                    # We've passed a cargo spot
+                    self.current_cargo_number += 1
+                    print(f"Detected cargo #{self.current_cargo_number} at distance {self.max_mag_distance:.2f} cm")
+                    
+                    if self.current_cargo_number == self.target_cargo_number:
+                        # This is our target cargo - deploy!
+                        print(f"Target cargo #{self.target_cargo_number} reached - deploying")
                         await self.deploy_and_close()
-                elif self.state.cargo_level == "edge":
-                    print(f"Edge cargo detected at distance {self.max_mag_distance:.2f} cm")
-                    if self.max_cargo_level != "edge":
-                        if self.max_magnetic_field > current_field:
-                            print(f"Edge cargo confirmed")
-                            await self.deploy_and_close()
-                else:
-                    if self.max_cargo_level != "none":
-                        if self.max_magnetic_field > current_field:
-                            print(f"Cargo confirmed")
-                            await self.deploy_and_close()
+                    else:
+                        # Not our target - enter buffer period and continue
+                        print(f"Not target cargo (target: #{self.target_cargo_number}), continuing...")
+                        self.in_buffer_period = True
+                        self.buffer_end_distance = self.state.distance_traveled + self.buffer_distance
+                        print(f"Buffer active until distance {self.buffer_end_distance:.2f} cm")
             
             await asyncio.sleep(update_interval)
     

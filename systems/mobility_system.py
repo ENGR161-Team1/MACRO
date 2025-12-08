@@ -38,11 +38,16 @@ class MotionController:
         
         # Turn limits
         self.max_turn = kwargs.get("max_turn", 100)
+        self.turn_mode = kwargs.get("turn_mode", "fixed") # Can be fixed or dynamic
         self.turn_amount = kwargs.get("turn_amount", 20)
         self.central_pos = self.turn_motor.get_position()
         
         # Line following
         self.line_follow_interval = kwargs.get("line_follow_interval", 0.1)
+        
+        # Override mode settings
+        self.override_mode = kwargs.get("override_mode", "straight")
+        self.override_distance = kwargs.get("override_distance", 6.0)
         
         # State tracking
         self.moving = False
@@ -65,6 +70,20 @@ class MotionController:
         self.turn_motor.stop()
         self.moving = False
     
+    def trigger_override(self, distance: float = None):
+        """
+        Trigger override mode - straighten and travel specified distance.
+        
+        Args:
+            distance (float): Distance in cm to travel in override mode.
+                             If None, uses self.override_distance.
+        """
+        if distance is None:
+            distance = self.override_distance
+        self.state.override = True
+        self.state.override_start_distance = self.state.distance_traveled
+        self.state.override_end_distance = self.state.distance_traveled + distance
+        print(f"Override triggered: straight for {distance} cm (until {self.state.override_end_distance:.2f} cm)")
 
     def get_distance(self) -> float:
         """
@@ -167,24 +186,36 @@ class MotionController:
 
     async def turn_left(self, amount: int = 20):
         """
-        Turn left by a specified amount if within limits.
+        Turn left by a specified amount, clamped to max turn limit.
         
         Args:
             amount (int): Degrees to turn (default: 20)
         """
+        print("Turning Left")
         turn_pos = self.turn_motor.get_position()
-        if turn_pos > self.central_pos - self.max_turn:
+        # Clamp amount to not exceed max turn from center
+        target_pos = turn_pos - amount
+        min_pos = self.central_pos - self.max_turn
+        if target_pos < min_pos:
+            amount = turn_pos - min_pos
+        if amount > 0:
             self.turn_motor.run_for_degrees(-amount, self.turn_speed)
 
     async def turn_right(self, amount: int = 20):
         """
-        Turn right by a specified amount if within limits.
+        Turn right by a specified amount, clamped to max turn limit.
         
         Args:
             amount (int): Degrees to turn (default: 20)
         """
+        print("Turning Right")
         turn_pos = self.turn_motor.get_position()
-        if turn_pos < self.central_pos + self.max_turn:
+        # Clamp amount to not exceed max turn from center
+        target_pos = turn_pos + amount
+        max_pos = self.central_pos + self.max_turn
+        if target_pos > max_pos:
+            amount = max_pos - turn_pos
+        if amount > 0:
             self.turn_motor.run_for_degrees(amount, self.turn_speed)
 
     async def recalibrate_center(self):
@@ -246,6 +277,24 @@ class MotionController:
                     print("Path clear. Speeding up.")
                     self.current_speed = self.forward_speed
             
+            # Check override mode - straighten and travel distance before resuming
+            if self.state.override:
+                # Check if we've traveled the override distance
+                if self.state.distance_traveled >= self.state.override_end_distance:
+                    self.state.override = False
+                    await self.straighten()
+                    print(f"Override complete at {self.state.distance_traveled:.2f} cm, resuming line following")
+                else:
+                    # In override mode - apply turn based on mode
+                    if self.override_mode == "straight":
+                        await self.straighten()
+                    elif self.override_mode == "left":
+                        await self.turn_left(self.max_turn)
+                    elif self.override_mode == "right":
+                        await self.turn_right(self.max_turn)
+                    await asyncio.sleep(self.line_follow_interval)
+                    continue
+            
             # Line following logic (only when moving)
             if self.moving:
                 left_in = self.state.lf_left_value
@@ -276,14 +325,24 @@ class MotionController:
 
                 if self.line_state == "left":
                     # Robot is to the left of the line - turn right
-                    self.stop()
-                    await self.turn_right(self.turn_amount)
-                    self.start(self.current_speed)
+                    if self.turn_mode == "fixed":
+                        # Fixed mode: turn to max right position
+                        await self.turn_right(self.max_turn)
+                    else:
+                        # Dynamic mode: incremental turn
+                        self.stop()
+                        await self.turn_right(self.turn_amount)
+                        self.start(self.current_speed)
                 elif self.line_state == "right":
                     # Robot is to the right of the line - turn left
-                    self.stop()
-                    await self.turn_left(self.turn_amount)
-                    self.start(self.current_speed)
+                    if self.turn_mode == "fixed":
+                        # Fixed mode: turn to max left position
+                        await self.turn_left(self.max_turn)
+                    else:
+                        # Dynamic mode: incremental turn
+                        self.stop()
+                        await self.turn_left(self.turn_amount)
+                        self.start(self.current_speed)
                 else:
                     # Neither sensor on line - straighten
                     await self.straighten()

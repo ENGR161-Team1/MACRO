@@ -77,6 +77,7 @@ class MobilityConfig:
     # Turn limits
     max_turn: int = 100
     turn_amount: int = 20  # Degrees to turn during line following
+    turn_mode: str = "dynamic"  # "dynamic" or "fixed" - fixed always turns to max
     
     # Wheel
     wheel_ratio: float = 9.0  # cm per wheel rotation
@@ -87,6 +88,11 @@ class MobilityConfig:
     # Safety
     slowdown_distance: float = 30.0
     stopping_distance: float = 15.0
+    
+    # Override mode - disable line following but keep robot moving
+    override: bool = False
+    override_mode: str = "straight"  # Override behavior: "straight" = straighten and go
+    override_distance: float = 6.0  # Distance in cm to travel before resuming line following
 
 
 @dataclass
@@ -122,6 +128,9 @@ class DisplayConfig:
     """
     enabled: bool = True
     update_interval: int = 100  # milliseconds
+    
+    # Run mode: "display" = print state, "control" = interactive override console
+    run_mode: str = "display"
     
     # Window
     width: int = 800
@@ -165,6 +174,12 @@ class CargoConfig:
     
     # Debounce: consecutive detections needed before deploying
     required_detections: int = 5
+    
+    # Target cargo: which cargo number to deploy at (1-indexed)
+    target_cargo_number: int = 1
+    
+    # Buffer distance: cm to travel after passing a non-target cargo before detecting again
+    buffer_distance: float = 6.0
 
 
 @dataclass
@@ -232,11 +247,15 @@ def load_config(config_path: Optional[str] = None) -> Config:
             forward_speed_slow=m.get("speed", {}).get("forward_slow", 10),
             turn_speed=m.get("speed", {}).get("turn", 20),
             max_turn=m.get("turn", {}).get("max_angle", 100),
-            turn_amount=m.get("turn", {}).get("amount", 20),
-            wheel_ratio=m.get("wheel", {}).get("ratio", 9.0),
-            line_follow_interval=m.get("line_follow", {}).get("interval", 0.1),
+            turn_amount=m.get("line_follow", {}).get("turn_amount", 20),
+            turn_mode=m.get("line_follow", {}).get("turn_mode", "dynamic"),
+            wheel_ratio=m.get("line_follow", {}).get("wheel_ratio", 9.0),
+            line_follow_interval=m.get("line_follow", {}).get("update_interval", 0.1),
             slowdown_distance=m.get("safety", {}).get("slowdown_distance", 30.0),
             stopping_distance=m.get("safety", {}).get("stopping_distance", 15.0),
+            override=m.get("override", False),
+            override_mode=m.get("override_mode", "straight"),
+            override_distance=m.get("override_distance", 6.0),
         )
     
     # Parse navigation section
@@ -263,6 +282,7 @@ def load_config(config_path: Optional[str] = None) -> Config:
         config.display = DisplayConfig(
             enabled=d.get("enabled", True),
             update_interval=d.get("update_interval", 100),
+            run_mode=d.get("run_mode", "display"),
             width=d.get("window", {}).get("width", 800),
             height=d.get("window", {}).get("height", 600),
             title=d.get("window", {}).get("title", "MACRO Control Panel"),
@@ -283,6 +303,8 @@ def load_config(config_path: Optional[str] = None) -> Config:
             semi_threshold=c.get("thresholds", {}).get("semi", 1000.0),
             full_threshold=c.get("thresholds", {}).get("full", 3000.0),
             required_detections=c.get("detection", {}).get("required_consecutive", 5),
+            target_cargo_number=c.get("detection", {}).get("target_cargo_number", 1),
+            buffer_distance=c.get("detection", {}).get("buffer_distance", 6.0),
         )
     
     # Parse testing section
@@ -364,8 +386,11 @@ class Controller:
             turn_speed=mc.turn_speed,
             max_turn=mc.max_turn,
             turn_amount=mc.turn_amount,
+            turn_mode=mc.turn_mode,
             wheel_ratio=mc.wheel_ratio,
             line_follow_interval=mc.line_follow_interval,
+            override_mode=mc.override_mode,
+            override_distance=mc.override_distance,
         )
         
         # Initialize navigation with shared state
@@ -398,7 +423,16 @@ class Controller:
             full_threshold=cc.full_threshold,
             required_detections=cc.required_detections,
             deploy_distance=sc.imu_to_cargo,
+            target_cargo_number=cc.target_cargo_number,
+            buffer_distance=cc.buffer_distance,
         )
+        
+        # Initialize override mode from config
+        self.state.override = mc.override
+        if self.state.override:
+            self.state.override_start_distance = 0.0  # Start from beginning
+            self.state.override_end_distance = mc.override_distance
+            print(f"Override mode ENABLED - straight for {mc.override_distance} cm")
         
         # Start sensor update loop
         self._sensor_task = asyncio.create_task(
@@ -432,6 +466,78 @@ class Controller:
         self.state.mobility_enabled = not self.state.mobility_enabled
         status = "ENABLED" if self.state.mobility_enabled else "DISABLED"
         print(f"Mobility {status}")
+    
+    def trigger_override(self, mode: str, distance: float = None):
+        """
+        Trigger override mode with specified turn direction.
+        
+        Args:
+            mode (str): Override mode - "straight", "left", or "right"
+            distance (float): Distance to travel in override mode (default: from config)
+        """
+        if distance is None:
+            distance = self.config.mobility.override_distance
+        
+        # Update the mobility system's override mode
+        self.mobility.override_mode = mode
+        
+        # Trigger the override
+        self.mobility.trigger_override(distance)
+    
+    async def _control_console(self):
+        """
+        Interactive control console for triggering overrides.
+        
+        Controls:
+            w - Straight override
+            a - Left override  
+            d - Right override
+            q - Quit
+        """
+        import sys
+        import termios
+        import tty
+        
+        print("\n=== MACRO Control Console ===")
+        print("Controls:")
+        print("  w - Straight override")
+        print("  a - Left override")
+        print("  d - Right override")
+        print("  q - Quit")
+        print("============================\n")
+        
+        # Save terminal settings
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        
+        try:
+            # Set terminal to raw mode for single character input
+            tty.setraw(fd)
+            
+            while self._running:
+                # Check if input is available (non-blocking)
+                import select
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    char = sys.stdin.read(1)
+                    
+                    if char == 'w':
+                        print("\r\nTriggering STRAIGHT override...\r")
+                        self.trigger_override("straight")
+                    elif char == 'a':
+                        print("\r\nTriggering LEFT override...\r")
+                        self.trigger_override("left")
+                    elif char == 'd':
+                        print("\r\nTriggering RIGHT override...\r")
+                        self.trigger_override("right")
+                    elif char == 'q' or char == '\x03':  # q or Ctrl+C
+                        print("\r\nExiting control console...\r")
+                        self._running = False
+                        break
+                
+                await asyncio.sleep(0.05)
+        finally:
+            # Restore terminal settings
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     
     def print_state(self, timestamp: float, fields: List[str] = None):
         """
@@ -507,9 +613,11 @@ class Controller:
         
         self._running = True
         nc = self.config.navigation
+        dc = self.config.display
         start_time = time.time()
         
         print("MACRO Controller running...")
+        print(f"Run mode: {dc.run_mode}")
         
         # Start line following task
         line_follow_task = asyncio.create_task(self.mobility.auto_line_follow())
@@ -519,11 +627,17 @@ class Controller:
             self.cargo.run_cargo_update_loop(update_interval=self.config.sensors.update_interval)
         )
         
+        # Start control console if in control mode
+        control_task = None
+        if dc.run_mode == "control":
+            control_task = asyncio.create_task(self._control_console())
+        
         try:
             while self._running:
                 await self.navigator.update_state(dt=nc.update_interval)
                 
-                if nc.print_state:
+                # Only print state in display mode
+                if dc.run_mode == "display" and nc.print_state:
                     timestamp = time.time() - start_time
                     self.print_state(timestamp, nc.print_fields)
                 
@@ -532,6 +646,9 @@ class Controller:
             print("\nKeyboard interrupt received...")
         finally:
             line_follow_task.cancel()
+            cargo_monitor_task.cancel()
+            if control_task:
+                control_task.cancel()
             await self.shutdown()
     
     async def shutdown(self):

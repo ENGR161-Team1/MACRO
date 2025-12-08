@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-12-08
+
+### Added
+- **Override Mode System**: Temporary override of line following
+  - `override`, `override_mode`, `override_distance` in `[mobility]` config
+  - `override_start_distance` and `override_end_distance` in State
+  - Three override modes: `"straight"`, `"left"`, `"right"`
+  - `trigger_override(distance)` method in MotionController
+  - Robot straightens wheels when override ends and resumes line following
+- **Target Cargo System**: Deploy at specific cargo number
+  - `target_cargo_number` config - which cargo spot to deploy at (1-indexed)
+  - `buffer_distance` config - distance to travel after non-target cargo
+  - `cargo_number` tracking in State
+  - `reset_detection()` method to clear magnetic values after passing cargo
+- **Run Mode Toggle**: Display vs Control modes
+  - `run_mode` in `[display]` config: `"display"` or `"control"`
+  - Display mode: prints state to console (existing behavior)
+  - Control mode: interactive keyboard console for override triggers
+- **Control Console**: Keyboard-based override control
+  - `w` - Trigger straight override
+  - `a` - Trigger left override
+  - `d` - Trigger right override
+  - `q` - Quit
+- `trigger_override(mode, distance)` method in Controller
+
+### Changed
+- Line following fixed mode now uses `turn_left(max_turn)` / `turn_right(max_turn)` functions
+- Cargo system tracks multiple cargo spots and only deploys at target
+- `run()` method now supports both display and control modes
+
+---
+
 ## [1.1.0] - 2025-12-08
 
 ### Added
