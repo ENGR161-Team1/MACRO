@@ -22,7 +22,8 @@ class MotionController:
     def __init__(self, **kwargs):
         self.front_motor = Motor(kwargs.get("front_motor", "A"))
         self.turn_motor = Motor(kwargs.get("turn_motor", "B"))
-        
+        self.wheel_ratio = kwargs.get("wheel_ratio", 9.0)  # cm per wheel rotation
+
         # Centralized state
         self.state = kwargs.get("state", State())
         
@@ -37,7 +38,11 @@ class MotionController:
         
         # Turn limits
         self.max_turn = kwargs.get("max_turn", 100)
+        self.turn_amount = kwargs.get("turn_amount", 20)
         self.central_pos = self.turn_motor.get_position()
+        
+        # Line following
+        self.line_follow_interval = kwargs.get("line_follow_interval", 0.1)
         
         # State tracking
         self.moving = False
@@ -112,6 +117,7 @@ class MotionController:
         """Update motor encoder state."""
         self.state.motor_position = self.front_motor.get_position()
         self.state.motor_velocity = self.front_motor.get_speed()
+        self.state.distance_traveled = self.state.motor_position / 360.0 * self.wheel_ratio
         self.state.turn_position = self.turn_motor.get_position()
 
     async def increase_speed(self, increment: int = 5):
@@ -191,6 +197,7 @@ class MotionController:
         Combines safety monitoring with line following.
         Reads line finder values and ultrasonic distance from State.
         Pauses when state.deploying_cargo is True.
+        Uses self.line_follow_interval for update timing.
         """
         # Start forward motion
         self.front_motor.start(self.forward_speed)
@@ -266,10 +273,14 @@ class MotionController:
 
                 if self.line_state == "left":
                     # Robot is to the left of the line - turn right
-                    await self.turn_right(20)
+                    self.stop()
+                    await self.turn_right(self.turn_amount)
+                    self.start(self.current_speed)
                 elif self.line_state == "right":
                     # Robot is to the right of the line - turn left
-                    await self.turn_left(20)
+                    self.stop()
+                    await self.turn_left(self.turn_amount)
+                    self.start(self.current_speed)
                 else:
                     # Neither sensor on line - straighten
                     await self.straighten()
@@ -277,6 +288,6 @@ class MotionController:
                 self.prev_left_in = left_in
                 self.prev_right_in = right_in
             
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(self.line_follow_interval)
             
 

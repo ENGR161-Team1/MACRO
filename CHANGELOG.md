@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-12-08
+
+### 🎉 First Stable Release
+
+This marks the first stable release of MACRO - Mars Autonomous Cargo Rover Operations.
+The robot successfully navigates using line following, detects cargo via magnetic field sensing,
+and deploys cargo at the correct location.
+
+### Added
+- `[mobility.line_follow]` configuration section in `macro_config.toml`:
+  - `wheel_ratio` - Ratio between wheel motor degrees and turn motor degrees (default: 9.0)
+  - `turn_amount` - Degrees to turn when correcting line position (default: 20)
+  - `update_interval` - Seconds between line following updates (default: 0.1)
+- `deploy_distance` parameter for Cargo system - uses `imu_to_cargo` from sensor config
+- Distance-based cargo deployment - deploys when robot travels `deploy_distance` past max magnetic reading
+
+### Changed
+- Line following now uses configurable `line_follow_interval` instead of hardcoded value
+- Cargo deployment timing now based on distance traveled from magnetic detection point
+- `MobilityConfig` now includes `wheel_ratio`, `turn_amount`, and `line_follow_interval`
+
+### Fixed
+- Cargo deploy distance now correctly calculated from IMU to cargo position offset
+
+---
+
 ## [0.12.4] - 2025-12-07
 
 ### Added

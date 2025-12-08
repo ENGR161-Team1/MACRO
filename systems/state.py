@@ -27,5 +27,6 @@ class State:
     button_pressed: bool = False  # Button state
     motor_position: float = 0.0  # Front motor position in degrees
     motor_velocity: float = 0.0  # Front motor velocity in degrees per second
+    distance_traveled: float = 0.0  # Total distance traveled in cm
     turn_position: float = 0.0  # Turn motor position in degrees
     deploying_cargo: bool = False  # Whether cargo is being deployed (pauses motion)

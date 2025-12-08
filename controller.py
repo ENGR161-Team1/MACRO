@@ -76,6 +76,13 @@ class MobilityConfig:
     
     # Turn limits
     max_turn: int = 100
+    turn_amount: int = 20  # Degrees to turn during line following
+    
+    # Wheel
+    wheel_ratio: float = 9.0  # cm per wheel rotation
+    
+    # Line following
+    line_follow_interval: float = 0.1  # Update interval for line following
     
     # Safety
     slowdown_distance: float = 30.0
@@ -226,6 +233,9 @@ def load_config(config_path: Optional[str] = None) -> Config:
             forward_speed_slow=m.get("speed", {}).get("forward_slow", 10),
             turn_speed=m.get("speed", {}).get("turn", 20),
             max_turn=m.get("turn", {}).get("max_angle", 100),
+            turn_amount=m.get("turn", {}).get("amount", 20),
+            wheel_ratio=m.get("wheel", {}).get("ratio", 9.0),
+            line_follow_interval=m.get("line_follow", {}).get("interval", 0.1),
             slowdown_distance=m.get("safety", {}).get("slowdown_distance", 30.0),
             stopping_distance=m.get("safety", {}).get("stopping_distance", 15.0),
         )
@@ -355,6 +365,9 @@ class Controller:
             forward_speed_slow=mc.forward_speed_slow,
             turn_speed=mc.turn_speed,
             max_turn=mc.max_turn,
+            turn_amount=mc.turn_amount,
+            wheel_ratio=mc.wheel_ratio,
+            line_follow_interval=mc.line_follow_interval,
         )
         
         # Initialize navigation with shared state
@@ -387,6 +400,7 @@ class Controller:
             semi_threshold=cc.semi_threshold,
             full_threshold=cc.full_threshold,
             required_detections=cc.required_detections,
+            deploy_distance=sc.imu_to_cargo,
         )
         
         # Start sensor update loop
@@ -469,6 +483,9 @@ class Controller:
         
         if show_all or "motor" in fields:
             parts.append(f"Motor: pos={self.state.motor_position:.1f}° vel={self.state.motor_velocity:.1f}°/s")
+        
+        if show_all or "distance" in fields:
+            parts.append(f"Distance: {self.state.distance_traveled:.1f} cm")
         
         if show_all or "turn" in fields:
             parts.append(f"Turn: {self.state.turn_position:.1f}°")

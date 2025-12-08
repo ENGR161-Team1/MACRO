@@ -191,12 +191,19 @@ Magnetometer
        │            │  full: 3000 µT          │
        ▼            └─────────────────────────┘
 ┌─────────────┐
-│ Debounce    │ 5 consecutive "full" readings
+│ Track max   │ Record distance at peak reading
 └──────┬──────┘
        │
        ▼
 ┌─────────────┐
-│ Auto-deploy │ deploy() → close() → done
+│ Confirm     │ Detect when mag_delta decreases
+│ detection   │ (past the cargo)
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ Deploy at   │ Wait until: distance_traveled =
+│ distance    │ max_mag_distance + deploy_distance
 └─────────────┘
 ```
 
@@ -259,6 +266,11 @@ turn_motor = "B"
 forward = 20
 turn = 20
 
+[mobility.line_follow]
+wheel_ratio = 9.0
+turn_amount = 20
+update_interval = 0.1
+
 [cargo.motor]
 port = "C"
 speed = 100
@@ -287,6 +299,9 @@ class MobilityConfig:
     front_motor: str = "A"
     turn_motor: str = "B"
     forward_speed: int = 20
+    wheel_ratio: float = 9.0
+    turn_amount: int = 20
+    line_follow_interval: float = 0.1
     # ... speed and safety settings
 
 @dataclass

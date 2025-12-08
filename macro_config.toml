@@ -26,7 +26,7 @@ lf_height = 0.025  # Height of left front distance sensor from ground in meters
 lf_offset = 0.0225 # Horizontal offset of left front distance sensor from center in meters
 imu_to_lf = 0.125 # Horizontal distance from IMU to front distance sensors in meters
 imu_to_color = 0.11 # Horizontal distance from IMU to color sensor in meters
-imu_to_cargo = 0.24 # Horizontal distance from IMU to cargo deploy location in meters
+imu_to_cargo = 0.36 # Horizontal distance from IMU to cargo deploy location in meters
 
 [sensors.pins]
 # GPIO pin assignments for Grove Base HAT sensors
@@ -62,6 +62,12 @@ max_angle = 100  # Maximum turn angle from center in degrees
 # Distance thresholds in centimeters
 slowdown_distance = 30.0
 stopping_distance = 15.0
+
+[mobility.line_follow]
+# Line following parameters
+wheel_ratio = 9.0  # Ratio between wheel motor degrees and turn motor degrees
+turn_amount = 20  # Degrees to turn when correcting line position
+update_interval = 0.2  # Seconds between line following updates
 
 # =============================================================================
 # NAVIGATION

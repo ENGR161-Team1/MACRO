@@ -24,7 +24,10 @@ controller = MotionController(
     forward_speed=20,
     forward_speed_slow=10,
     turn_speed=20,
-    max_turn=100
+    max_turn=100,
+    wheel_ratio=9.0,
+    turn_amount=20,
+    line_follow_interval=0.1
 )
 ```
 
@@ -39,6 +42,9 @@ controller = MotionController(
 | `forward_speed_slow` | int | `10` | Reduced speed in slowdown zone |
 | `turn_speed` | int | `20` | Turn motor speed |
 | `max_turn` | int | `100` | Maximum turn angle from center |
+| `wheel_ratio` | float | `9.0` | Ratio between wheel motor degrees and turn motor degrees |
+| `turn_amount` | int | `20` | Degrees to turn when correcting line position |
+| `line_follow_interval` | float | `0.1` | Seconds between line following updates |
 
 ### Attributes
 
@@ -53,6 +59,9 @@ controller = MotionController(
 | `line_state` | str | Current line following state ("left", "center", "right") |
 | `prev_left_in` | bool | Previous left line finder value |
 | `prev_right_in` | bool | Previous right line finder value |
+| `wheel_ratio` | float | Ratio between wheel and turn motor degrees |
+| `turn_amount` | int | Degrees to turn when correcting |
+| `line_follow_interval` | float | Seconds between line following updates |
 
 ---
 

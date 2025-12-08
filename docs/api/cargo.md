@@ -23,7 +23,8 @@ cargo = Cargo(
     edge_threshold=400.0,
     semi_threshold=1000.0,
     full_threshold=3000.0,
-    required_detections=5
+    required_detections=5,
+    deploy_distance=0.24
 )
 ```
 
@@ -37,6 +38,7 @@ cargo = Cargo(
 | `semi_threshold` | float | `1000.0` | Magnetic threshold for semi-detection (µT) |
 | `full_threshold` | float | `3000.0` | Magnetic threshold for full detection (µT) |
 | `required_detections` | int | `5` | Consecutive full detections needed before deploying |
+| `deploy_distance` | float | `0.0` | Distance to travel past max magnetic reading before deploying (m) |
 
 ### Attributes
 
@@ -45,7 +47,9 @@ cargo = Cargo(
 | `state` | State | Shared state object |
 | `motor` | Motor | Build HAT motor instance |
 | `deployed` | bool | Whether cargo has been deployed (prevents re-deployment) |
-| `full_detection_count` | int | Counter for debouncing |
+| `max_mag_delta` | float | Maximum magnetic delta observed during run |
+| `max_mag_distance` | float | Distance traveled when max magnetic reading occurred |
+| `deploy_distance` | float | Distance to travel past max reading before deploying (cm) |
 
 ---
 

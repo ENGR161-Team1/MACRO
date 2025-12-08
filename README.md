@@ -84,9 +84,10 @@ MACRO/
 - **Async Operation**: Non-blocking motor and sensor updates
 - **Cargo Pause**: Automatically pauses during cargo deployment
 
-### Cargo System (v0.12.4)
+### Cargo System (v1.0.0)
 - **Magnetic Cargo Detection**: Edge, semi, and full detection levels
-- **Auto-Deploy**: Automatically deploys on full cargo detection
+- **Distance-Based Deployment**: Deploys when robot travels past cargo by configured distance
+- **Auto-Deploy**: Automatically deploys on cargo detection confirmation
 - **Debouncing**: Prevents false positives from motor EMF
 - **One-Time Deployment**: Deploys once then prevents re-deployment
 
