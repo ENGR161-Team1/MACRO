@@ -97,7 +97,7 @@ motor_velocity_threshold = 1.0
 # Update interval in seconds
 interval = 0.1
 # Print state to console
-print_state = false
+print_state = true
 # Fields to print: ["all"] or specific fields
 print_fields = ["all"]
 
@@ -110,8 +110,8 @@ print_fields = ["all"]
 
 [cargo.motor]
 # Payload motor settings
-port = "B"          # Build HAT port for payload motor
-speed = 50          # Motor speed for deployment (0-100)
+port = "C"          # Build HAT port for payload motor
+speed = 100          # Motor speed for deployment (0-100)
 deploy_angle = 180  # Degrees to turn for deployment
 
 [cargo.thresholds]
@@ -119,6 +119,10 @@ deploy_angle = 180  # Degrees to turn for deployment
 edge = 400.0    # Threshold for edge detection
 semi = 1000.0   # Threshold for semi-detection
 full = 3000.0   # Threshold for full detection
+
+[cargo.detection]
+# Debounce settings to prevent false positives from motor EMF
+required_consecutive = 3  # Number of consecutive full detections needed before deploying
 
 # =============================================================================
 # DISPLAY

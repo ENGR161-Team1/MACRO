@@ -156,6 +156,9 @@ class CargoConfig:
     edge_threshold: float = 400.0
     semi_threshold: float = 1000.0
     full_threshold: float = 3000.0
+    
+    # Debounce: consecutive detections needed before deploying
+    required_detections: int = 5
 
 
 @dataclass
@@ -271,6 +274,7 @@ def load_config(config_path: Optional[str] = None) -> Config:
             edge_threshold=c.get("thresholds", {}).get("edge", 400.0),
             semi_threshold=c.get("thresholds", {}).get("semi", 1000.0),
             full_threshold=c.get("thresholds", {}).get("full", 3000.0),
+            required_detections=c.get("detection", {}).get("required_consecutive", 5),
         )
     
     # Parse testing section
@@ -382,6 +386,7 @@ class Controller:
             edge_threshold=cc.edge_threshold,
             semi_threshold=cc.semi_threshold,
             full_threshold=cc.full_threshold,
+            required_detections=cc.required_detections,
         )
         
         # Start sensor update loop

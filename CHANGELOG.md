@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.4] - 2025-12-07
+
+### Added
+- Debouncing for cargo detection to prevent false positives from motor EMF
+- `required_detections` config option (default: 5 consecutive detections needed)
+- `[cargo.detection]` section in `macro_config.toml`
+
+### Fixed
+- `deploy()` and `close()` now use `blocking=True` so robot actually stops during deployment
+- `close()` now sets `deploying_cargo` state to pause motion
+- Improved line following state machine logic
+
+---
+
 ## [0.13.0] - 2025-12-07
 
 ### Added

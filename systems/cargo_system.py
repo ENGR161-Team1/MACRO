@@ -33,6 +33,10 @@ class Cargo:
         self.edge_mag_threshold = kwargs.get("edge_threshold", 400)  # µT
         self.semi_mag_threshold = kwargs.get("semi_threshold", 1000)  # µT
         self.full_mag_threshold = kwargs.get("full_threshold", 3000)  # µT
+        
+        # Debounce settings for false positive prevention
+        self.full_detection_count = 0
+        self.required_detections = kwargs.get("required_detections", 5)  # Number of consecutive detections needed
 
     def get_magnetic_delta(self):
         """
@@ -83,9 +87,9 @@ class Cargo:
         
         print("Deploying cargo...")
         self.state.deploying_cargo = True
-        self.motor.run_for_degrees(self.deploy_angle, self.motor_speed)
-        self.state.deploying_cargo = False
+        self.motor.run_for_degrees(self.deploy_angle, self.motor_speed, blocking=True)
         self.deployed = True
+        self.state.deploying_cargo = False
         print("Cargo deployed")
     
     async def close(self):
@@ -94,7 +98,9 @@ class Cargo:
         Does not reset deployed flag to prevent re-deployment.
         """
         print("Closing cargo bay...")
-        self.motor.run_for_degrees(-self.deploy_angle, self.motor_speed)
+        self.state.deploying_cargo = True
+        self.motor.run_for_degrees(-self.deploy_angle, self.motor_speed, blocking=True)
+        self.state.deploying_cargo = False
         print("Cargo bay closed")
     
     def stop(self):
@@ -105,6 +111,7 @@ class Cargo:
         """
         Continuously monitor cargo level and update State.
         Auto-deploys cargo when full level is detected (one-time only).
+        Uses debouncing to prevent false positives from motor EMF.
         
         Args:
             update_interval (float): Time between checks in seconds (default: 0.1)
@@ -113,12 +120,18 @@ class Cargo:
             self.state.mag_delta = self.get_magnetic_delta()
             self.state.cargo_level = self.detect_cargo_level()
             
-            # Auto-deploy when full cargo detected (only once)
+            # Debounce full detection to prevent false positives from motor EMF
             if self.state.cargo_level == "full" and not self.deployed:
-                await self.deploy()
-                await asyncio.sleep(0.5)  # Brief pause between deploy and close
-                await self.close()
-                # deployed remains True to prevent future deployments
+                self.full_detection_count += 1
+                if self.full_detection_count >= self.required_detections:
+                    print(f"Full cargo confirmed after {self.full_detection_count} consecutive detections")
+                    await self.deploy()
+                    await asyncio.sleep(0.5)  # Brief pause between deploy and close
+                    await self.close()
+                    # deployed remains True to prevent future deployments
+            else:
+                # Reset counter if not full detection
+                self.full_detection_count = 0
             
             await asyncio.sleep(update_interval)
     

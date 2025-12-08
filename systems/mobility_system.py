@@ -43,6 +43,11 @@ class MotionController:
         self.moving = False
         self.current_speed = self.forward_speed
 
+        # Line state tracking
+        self.prev_left_in = False
+        self.prev_right_in = False
+        self.line_state = "center"
+
     def start(self, speed=None):
         if speed is None:
             speed = self.forward_speed
@@ -215,13 +220,13 @@ class MotionController:
                     self.front_motor.start(self.forward_speed_slow)
                     print("Obstacle nearby! Slowing down.")
                     self.current_speed = self.forward_speed_slow
-                elif not self.moving and not self.state.deploying_cargo:
+                elif not self.moving:
                     self.front_motor.start(self.forward_speed_slow)
                     print("Path partially clear. Resuming at slow speed.")
                     self.moving = True
                     self.current_speed = self.forward_speed_slow
             else:
-                if not self.moving and not self.state.deploying_cargo:
+                if not self.moving:
                         self.front_motor.start(self.forward_speed)
                         print("Path clear. Resuming movement.")
                         self.moving = True
@@ -238,20 +243,39 @@ class MotionController:
                 turn_pos = self.turn_motor.get_position()
                 
                 if left_in and right_in:
-                    # Both sensors on line - correct based on current position
-                    if turn_pos < self.central_pos:
-                        await self.turn_left(20)
-                    else:
-                        await self.turn_right(20)
+                    if self.prev_left_in and not self.prev_right_in:
+                        self.line_state = "left"
+                    elif self.prev_right_in and not self.prev_left_in:
+                        self.line_state = "right"
                 elif left_in:
-                    # Left sensor on line - turn left
-                    await self.turn_left(20)
+                    if not self.prev_left_in and not self.prev_right_in:
+                        if self.line_state == "right":
+                            self.line_state = "center"
+                        else:
+                            self.line_state = "right"
+                    else:
+                        self.line_state = "right"
                 elif right_in:
-                    # Right sensor on line - turn right
+                    if not self.prev_left_in and not self.prev_right_in:
+                        if self.line_state == "left":
+                            self.line_state = "center"
+                        else:
+                            self.line_state = "left"
+                    else:
+                        self.line_state = "left"
+
+                if self.line_state == "left":
+                    # Robot is to the left of the line - turn right
                     await self.turn_right(20)
+                elif self.line_state == "right":
+                    # Robot is to the right of the line - turn left
+                    await self.turn_left(20)
                 else:
                     # Neither sensor on line - straighten
                     await self.straighten()
+
+                self.prev_left_in = left_in
+                self.prev_right_in = right_in
             
             await asyncio.sleep(0.1)
             
