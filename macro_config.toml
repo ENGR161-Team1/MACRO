@@ -105,7 +105,7 @@ interval = 0.1
 # Print state to console
 print_state = true
 # Fields to print: ["all"] or specific fields
-print_fields = ["all"]
+print_fields = ["distance", "line_finder", "magnetic", "cargo", "turn"]
 
 # =============================================================================
 # CARGO

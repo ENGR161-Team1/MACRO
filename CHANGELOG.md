@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-12-08
+
+### Fixed
+- Fixed async deploy loop blocking event loop - now uses `await asyncio.sleep()` to yield control
+- Fixed distance comparison using `>=` instead of exact `==` for float comparison
+- Cargo detection now uses raw `magnetic_field` instead of `mag_delta`
+- Added `cargo_bay_open` flag to confirm deployment before closing
+- Fixed TOML syntax error (trailing period in print_fields array)
+- `deploy_and_close()` now properly awaits deployment confirmation before closing
+- Moved `deploying_cargo` state management to `deploy()` and `close()` methods
+
+### Changed
+- Simplified magnetic field tracking - removed `get_magnetic_delta()`, uses `state.magnetic_field` directly
+- `run_cargo_update_loop()` now calls `deploy_and_close()` instead of just `deploy()`
+- Reduced close delay from 10 seconds to 2 seconds after confirmed deployment
+
+---
+
 ## [1.0.0] - 2025-12-08
 
 ### 🎉 First Stable Release
