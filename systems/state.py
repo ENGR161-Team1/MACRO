@@ -30,3 +30,4 @@ class State:
     distance_traveled: float = 0.0  # Total distance traveled in cm
     turn_position: float = 0.0  # Turn motor position in degrees
     deploying_cargo: bool = False  # Whether cargo is being deployed (pauses motion)
+    mobility_enabled: bool = True  # Whether mobility is enabled (button toggle)

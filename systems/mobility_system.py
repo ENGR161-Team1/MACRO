@@ -196,7 +196,7 @@ class MotionController:
         Automatically follow a line using left and right line finders.
         Combines safety monitoring with line following.
         Reads line finder values and ultrasonic distance from State.
-        Pauses when state.deploying_cargo is True.
+        Pauses when state.deploying_cargo is True or state.mobility_enabled is False.
         Uses self.line_follow_interval for update timing.
         """
         # Start forward motion
@@ -205,11 +205,14 @@ class MotionController:
         self.current_speed = self.forward_speed
         
         while True:
-            # Check if cargo is being deployed - pause motion
-            if self.state.deploying_cargo:
+            # Check if mobility is disabled (button toggle) or cargo is being deployed
+            if not self.state.mobility_enabled or self.state.deploying_cargo:
                 if self.moving:
                     self.front_motor.stop()
-                    print("Pausing for cargo deployment...")
+                    if not self.state.mobility_enabled:
+                        print("Mobility disabled by button")
+                    else:
+                        print("Pausing for cargo deployment...")
                     self.moving = False
                 await asyncio.sleep(0.1)
                 continue

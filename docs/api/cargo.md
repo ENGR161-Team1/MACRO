@@ -18,7 +18,6 @@ Cargo detection and deployment system using magnetic field sensing.
 cargo = Cargo(
     state=state,
     motor_port="C",
-    motor_speed=100,
     deploy_angle=180,
     edge_threshold=400.0,
     semi_threshold=1000.0,
@@ -32,7 +31,6 @@ cargo = Cargo(
 |-----------|------|---------|-------------|
 | `state` | State | required | Centralized state object for sensor data |
 | `motor_port` | str | `"B"` | Build HAT port for payload motor |
-| `motor_speed` | int | `50` | Motor speed for deployment (0-100) |
 | `deploy_angle` | int | `180` | Degrees to turn for deployment |
 | `edge_threshold` | float | `400.0` | Magnetic threshold for edge detection (µT) |
 | `semi_threshold` | float | `1000.0` | Magnetic threshold for semi-detection (µT) |

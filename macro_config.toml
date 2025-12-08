@@ -117,7 +117,6 @@ print_fields = ["distance", "line_finder", "magnetic", "cargo", "turn"]
 [cargo.motor]
 # Payload motor settings
 port = "C"          # Build HAT port for payload motor
-speed = 100          # Motor speed for deployment (0-100)
 deploy_angle = 180  # Degrees to turn for deployment
 
 [cargo.thresholds]

@@ -307,7 +307,6 @@ class MobilityConfig:
 @dataclass
 class CargoConfig:
     motor_port: str = "C"
-    motor_speed: int = 100
     deploy_angle: int = 180
     required_detections: int = 5
     # ... thresholds

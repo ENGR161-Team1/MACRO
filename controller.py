@@ -156,7 +156,6 @@ class CargoConfig:
     """Cargo detection configuration from [cargo] section."""
     # Motor settings
     motor_port: str = "B"
-    motor_speed: int = 50
     deploy_angle: int = 180
     
     # Magnetic thresholds in micro-tesla
@@ -279,7 +278,6 @@ def load_config(config_path: Optional[str] = None) -> Config:
         c = data["cargo"]
         config.cargo = CargoConfig(
             motor_port=c.get("motor", {}).get("port", "B"),
-            motor_speed=c.get("motor", {}).get("speed", 50),
             deploy_angle=c.get("motor", {}).get("deploy_angle", 180),
             edge_threshold=c.get("thresholds", {}).get("edge", 400.0),
             semi_threshold=c.get("thresholds", {}).get("semi", 1000.0),
@@ -394,7 +392,6 @@ class Controller:
         self.cargo = Cargo(
             state=self.state,
             motor_port=cc.motor_port,
-            motor_speed=cc.motor_speed,
             deploy_angle=cc.deploy_angle,
             edge_threshold=cc.edge_threshold,
             semi_threshold=cc.semi_threshold,
@@ -407,6 +404,11 @@ class Controller:
         self._sensor_task = asyncio.create_task(
             self.sensors.run_sensor_update(update_interval=sc.update_interval)
         )
+        
+        # Set up button to toggle mobility
+        if self.sensors.has_button():
+            self.sensors.button_sensor.when_pressed = self._toggle_mobility
+            print("Button configured to toggle mobility")
         
         # Allow sensors to start
         await asyncio.sleep(0.1)
@@ -424,6 +426,12 @@ class Controller:
         )
 
         print("MACRO Controller initialized")
+    
+    def _toggle_mobility(self):
+        """Toggle mobility on/off when button is pressed."""
+        self.state.mobility_enabled = not self.state.mobility_enabled
+        status = "ENABLED" if self.state.mobility_enabled else "DISABLED"
+        print(f"Mobility {status}")
     
     def print_state(self, timestamp: float, fields: List[str] = None):
         """

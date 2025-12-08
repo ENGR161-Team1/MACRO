@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-12-08
+
+### Added
+- `mobility_enabled` field in State for button-controlled mobility toggle
+- Button press now toggles robot mobility on/off
+- `_toggle_mobility()` method in Controller for button callback
+- `cargo_bay_open` flag to track and confirm cargo bay state
+
+### Changed
+- `auto_line_follow()` now checks `state.mobility_enabled` in addition to `state.deploying_cargo`
+- Cargo system uses raw `magnetic_field` instead of `mag_delta` for detection
+
+### Removed
+- `motor_speed` parameter from Cargo system (motor runs at default speed)
+- `speed` setting from `[cargo.motor]` config section
+
+---
+
 ## [1.0.1] - 2025-12-08
 
 ### Fixed

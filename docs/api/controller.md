@@ -215,7 +215,6 @@ class NavigationConfig:
 @dataclass
 class CargoConfig:
     motor_port: str = "B"
-    motor_speed: int = 50
     deploy_angle: int = 180
     edge_threshold: float = 400.0
     semi_threshold: float = 1000.0

@@ -14,7 +14,6 @@ class Cargo:
     Args:
         state (State): Centralized state object for sensor data
         motor_port (str): Build HAT port for payload motor (default: "B")
-        motor_speed (int): Motor speed for deployment (default: 50)
         deploy_angle (int): Degrees to turn for deployment (default: 180)
         edge_threshold (float): Magnetic threshold for edge detection in µT (default: 400)
         semi_threshold (float): Magnetic threshold for semi-detection in µT (default: 1000)
@@ -26,7 +25,6 @@ class Cargo:
         
         # Payload motor
         self.motor = Motor(kwargs.get("motor_port", "B"))
-        self.motor_speed = kwargs.get("motor_speed", 50)
         self.deploy_angle = kwargs.get("deploy_angle", 180)
         self.deployed = False  # Tracks if cargo has been deployed (one-time deployment)
 
