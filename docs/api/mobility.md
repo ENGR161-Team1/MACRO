@@ -208,6 +208,7 @@ await controller.auto_line_follow()
 - Combines safety monitoring with line following
 - Reads line finder values from State
 - Pauses when `state.deploying_cargo` is True
+- Pauses when `state.mobility_enabled` is False (button toggle)
 - Uses state machine for smooth tracking
 
 **Line State Machine:**

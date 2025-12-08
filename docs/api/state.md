@@ -56,13 +56,15 @@ All fields have sensible defaults. The State is typically created once by the Co
 | `motor_position` | `float` | `0.0` | Front motor position in degrees |
 | `motor_velocity` | `float` | `0.0` | Front motor velocity in °/s |
 | `turn_position` | `float` | `0.0` | Turn motor position in degrees |
+| `distance_traveled` | `float` | `0.0` | Total distance traveled in cm |
 
-### Cargo
+### Cargo & Mobility
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `cargo_level` | `str` | `"none"` | Detection level: "none", "edge", "semi", "full" |
 | `deploying_cargo` | `bool` | `False` | True during cargo deployment (pauses motion) |
+| `mobility_enabled` | `bool` | `True` | Whether mobility is enabled (button toggle) |
 
 ### Calibration
 

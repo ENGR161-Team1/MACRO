@@ -64,11 +64,12 @@ MACRO/
 
 ## Features
 
-### Controller (v0.12.0+)
+### Controller (v1.1.0)
 - **Centralized Configuration**: All settings from `macro_config.toml`
 - **Shared State**: Single `State` dataclass across all systems
 - **Graceful Shutdown**: Proper cleanup on exit (straighten wheels, stop motors)
 - **Configurable State Display**: Print selected fields to console
+- **Button Mobility Toggle**: Press button to enable/disable robot movement
 
 ### Navigation System
 - **3D Position Tracking**: Dead reckoning with IMU integration
@@ -84,11 +85,11 @@ MACRO/
 - **Async Operation**: Non-blocking motor and sensor updates
 - **Cargo Pause**: Automatically pauses during cargo deployment
 
-### Cargo System (v1.0.0)
+### Cargo System (v1.1.0)
 - **Magnetic Cargo Detection**: Edge, semi, and full detection levels
 - **Distance-Based Deployment**: Deploys when robot travels past cargo by configured distance
 - **Auto-Deploy**: Automatically deploys on cargo detection confirmation
-- **Debouncing**: Prevents false positives from motor EMF
+- **Bay Confirmation**: Confirms cargo bay is open before closing
 - **One-Time Deployment**: Deploys once then prevents re-deployment
 
 ### Navigation Display
