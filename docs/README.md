@@ -2,7 +2,7 @@
 
 > Mars Autonomous Cargo Rover Operations - Complete Documentation
 
-**Current Version: 1.1.0**
+**Current Version: 2.1.0**
 
 ---
 
@@ -158,3 +158,11 @@ MACRO/
 | 0.11.0 | 2025-12-07 | State dataclass, sensor position tracking |
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete history.
+
+---
+
+## Key Mobility System Updates (v2.1.0)
+- `auto_line_follow` renamed to `follow_line` for clarity.
+- New `track_line` async loop for independent line state tracking.
+- `follow_line` now starts `track_line` before entering its main loop.
+- Line sensor state now tracked with instance variables (`self.left_in`, `self.right_in`).

@@ -214,3 +214,17 @@ asyncio.run(main())
 - [Getting Started](../getting-started.md)
 - [Architecture](../architecture.md)
 - [Testing Guide](../testing.md)
+
+---
+
+## Mobility System (v2.1.0)
+
+### MotionController
+
+- `async follow_line()`
+  - Main async routine for line following. Starts `track_line` before entering the main loop.
+  - Handles obstacle avoidance, override modes, and reverse recovery.
+
+- `async track_line()`
+  - Independent async loop for updating `State.line_state` from line sensors.
+  - Uses instance variables `self.left_in` and `self.right_in` for sensor state.

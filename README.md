@@ -64,7 +64,7 @@ MACRO/
 
 ## Features
 
-### Controller (v2.0.0)
+### Controller (v2.1.0)
 - **Centralized Configuration**: All settings from `macro_config.toml`
 - **Shared State**: Single `State` dataclass across all systems
 - **Graceful Shutdown**: Proper cleanup on exit (straighten wheels, stop motors)
@@ -83,7 +83,8 @@ MACRO/
 
 ### Mobility System
 - **Motor Control**: LEGO Technic motors via Build HAT
-- **Line Following**: Automatic line following with state machine logic
+- **Line Following**: `follow_line` async routine starts `track_line` for independent line state tracking
+- **track_line**: Async loop for updating line state from sensors using instance variables `self.left_in` and `self.right_in`
 - **Safety Ring**: Ultrasonic obstacle detection with slowdown/stop zones
 - **Async Operation**: Non-blocking motor and sensor updates
 - **Cargo Pause**: Automatically pauses during cargo deployment

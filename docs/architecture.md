@@ -319,3 +319,12 @@ class CargoConfig:
 - [API Reference](api/README.md) - Detailed class documentation
 - [Hardware Guide](hardware.md) - Physical connections
 - [Testing Guide](testing.md) - Running and writing tests
+
+---
+
+## Mobility System (v2.1.0)
+
+- **MotionController**
+  - `follow_line`: Main async routine for line following (formerly `auto_line_follow`). Starts `track_line` for independent line state tracking.
+  - `track_line`: Async loop for updating `State.line_state` from line sensors using instance variables (`self.left_in`, `self.right_in`).
+  - Modular design: Line tracking and following logic are now decoupled for clarity and maintainability.

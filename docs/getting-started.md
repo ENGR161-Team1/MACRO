@@ -203,3 +203,11 @@ Mode (1/2):
 - [API Reference](api/README.md) - Detailed class and method documentation
 - [Hardware Guide](hardware.md) - Wiring and pin configurations
 - [Testing Guide](testing.md) - Comprehensive testing documentation
+
+---
+
+## Running the Mobility System
+
+- The main line following routine is now `follow_line` (formerly `auto_line_follow`).
+- Line state is tracked independently by the `track_line` async loop.
+- Ensure your configuration in `macro_config.toml` matches your hardware setup.
