@@ -150,12 +150,12 @@ MACRO/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 0.12.4 | 2025-12-07 | Cargo debouncing, deployment blocking fix, line following improvements |
-| 0.12.3 | 2025-12-07 | Graceful shutdown sequence |
-| 0.12.2 | 2025-12-07 | LineFinder integration fix |
-| 0.12.1 | 2025-12-07 | Line follow fix, turn_position tracking |
-| 0.12.0 | 2025-12-07 | Centralized config, CargoConfig, print_state in controller |
-| 0.11.0 | 2025-12-07 | State dataclass, sensor position tracking |
+| 2.1.0 | 2025-12-09 | `track_line` async loop, `follow_line` refactor, instance variable line sensors |
+| 2.0.0 | 2025-12-09 | Reverse recovery system, config-driven reverse, line state in State, refactor |
+| 1.2.0 | 2025-12-08 | Override mode, target cargo system, run mode toggle, control console |
+| 1.1.0 | 2025-12-08 | Mobility toggle, cargo bay state, line follow checks, config cleanup |
+| 1.0.1 | 2025-12-08 | Async deploy fix, cargo detection improvements, TOML syntax fix |
+| 1.0.0 | 2025-12-08 | First stable release: line following, cargo detection, config-driven behavior |
 
 See [CHANGELOG.md](../CHANGELOG.md) for complete history.
 
