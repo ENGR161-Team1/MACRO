@@ -231,7 +231,45 @@ class MotionController:
         """Set current turn position as the new center."""
         self.central_pos = self.turn_motor.get_position()
 
-    async def auto_line_follow(self):
+    async def track_line(self):
+        """
+        Independent loop for line tracking logic.
+        """
+        self.left_in = self.state.lf_left_value
+        self.right_in = self.state.lf_right_value
+
+        while True:
+            self.left_in = self.state.lf_left_value
+            self.right_in = self.state.lf_right_value
+
+            if self.left_in and self.right_in:
+                if self.prev_left_in and not self.prev_right_in:
+                    self.state.line_state = "left"
+                elif self.prev_right_in and not self.prev_left_in:
+                    self.state.line_state = "right"
+            elif self.left_in:
+                if not self.prev_left_in and not self.prev_right_in:
+                    if self.state.line_state == "right":
+                        self.state.line_state = "center"
+                    else:
+                        self.state.line_state = "right"
+                else:
+                    self.state.line_state = "right"
+            elif self.right_in:
+                if not self.prev_left_in and not self.prev_right_in:
+                    if self.state.line_state == "left":
+                        self.state.line_state = "center"
+                    else:
+                        self.state.line_state = "left"
+                else:
+                    self.state.line_state = "left"
+
+            self.prev_left_in = self.left_in
+            self.prev_right_in = self.right_in
+
+            await asyncio.sleep(self.line_follow_interval)
+
+    async def follow_line(self):
         """
         Automatically follow a line using left and right line finders.
         Combines safety monitoring with line following.
@@ -243,7 +281,10 @@ class MotionController:
         self.front_motor.start(self.forward_speed)
         self.moving = True
         self.current_speed = self.forward_speed
-        
+
+        # Start tracking the line before entering the main loop
+        asyncio.run(self.track_line())
+
         while True:
             # Check if mobility is disabled (button toggle) or cargo is being deployed
             if not self.state.mobility_enabled or self.state.deploying_cargo:
@@ -285,7 +326,7 @@ class MotionController:
                     self.front_motor.start(self.forward_speed)
                     print("Path clear. Speeding up.")
                     self.current_speed = self.forward_speed
-            
+
             # Check override mode - straighten and travel distance before resuming
             if self.state.override:
                 # Check if we've traveled the override distance
@@ -303,13 +344,12 @@ class MotionController:
                         await self.turn_right(self.max_turn)
                     await asyncio.sleep(self.line_follow_interval)
                     continue
-            
+
             # Line following logic (only when moving)
             if self.moving:
-                left_in = self.state.lf_left_value
-                right_in = self.state.lf_right_value
-                turn_pos = self.turn_motor.get_position()
-                
+                self.left_in = self.state.lf_left_value
+                self.right_in = self.state.lf_right_value
+
                 # Check if in reverse recovery mode
                 if self.reversing:
                     self.reverse_intervals_count += 1
@@ -325,33 +365,11 @@ class MotionController:
                         print(f"Reverse recovery complete, resuming forward")
                     await asyncio.sleep(self.line_follow_interval)
                     continue
-                
-                if left_in and right_in:
-                    if self.prev_left_in and not self.prev_right_in:
-                        self.state.line_state = "left"
-                    elif self.prev_right_in and not self.prev_left_in:
-                        self.state.line_state = "right"
-                elif left_in:
-                    if not self.prev_left_in and not self.prev_right_in:
-                        if self.state.line_state == "right":
-                            self.state.line_state = "center"
-                        else:
-                            self.state.line_state = "right"
-                    else:
-                        self.state.line_state = "right"
-                elif right_in:
-                    if not self.prev_left_in and not self.prev_right_in:
-                        if self.state.line_state == "left":
-                            self.state.line_state = "center"
-                        else:
-                            self.state.line_state = "left"
-                    else:
-                        self.state.line_state = "left"
 
                 if self.state.line_state == "left":
                     # Robot is to the left of the line - turn right
                     self.stuck_intervals += 1
-                    
+
                     # Check if stuck for too long (only if reverse is enabled)
                     if self.reverse_enabled and not self.reversing and self.stuck_intervals >= self.stuck_threshold:
                         print(f"Stuck in LEFT state for {self.stuck_intervals} intervals, reversing...")
@@ -360,7 +378,7 @@ class MotionController:
                         self.front_motor.start(-self.reverse_speed)  # Reverse
                         await asyncio.sleep(self.line_follow_interval)
                         continue
-                    
+
                     if self.turn_mode == "fixed":
                         # Fixed mode: turn to max right position
                         await self.turn_right(self.max_turn)
@@ -372,7 +390,7 @@ class MotionController:
                 elif self.state.line_state == "right":
                     # Robot is to the right of the line - turn left
                     self.stuck_intervals += 1
-                    
+
                     # Check if stuck for too long (only if reverse is enabled)
                     if self.reverse_enabled and not self.reversing and self.stuck_intervals >= self.stuck_threshold:
                         print(f"Stuck in RIGHT state for {self.stuck_intervals} intervals, reversing...")
@@ -381,7 +399,7 @@ class MotionController:
                         self.front_motor.start(-self.reverse_speed)  # Reverse
                         await asyncio.sleep(self.line_follow_interval)
                         continue
-                    
+
                     if self.turn_mode == "fixed":
                         # Fixed mode: turn to max left position
                         await self.turn_left(self.max_turn)
@@ -395,9 +413,6 @@ class MotionController:
                     self.stuck_intervals = 0  # Reset counter when centered
                     await self.straighten()
 
-                self.prev_left_in = left_in
-                self.prev_right_in = right_in
-            
             await asyncio.sleep(self.line_follow_interval)
-            
+
 

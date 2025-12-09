@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-12-09
+
+### Added
+- **`track_line` Function**: Introduced an independent loop for line tracking logic.
+  - Tracks `left_in` and `right_in` sensor values and updates `State.line_state`.
+- **`follow_line` Update**: Now starts the `track_line` function before entering its main loop.
+
+### Changed
+- Renamed the `auto_line_follow` function to `follow_line` for clarity.
+- Updated all references to `auto_line_follow` to use the new `follow_line` name.
+- Refactored `auto_line_follow` to use instance variables `self.left_in` and `self.right_in` for consistency.
+- Removed redundant line tracking logic from `auto_line_follow` and delegated it to `track_line`.
+
+---
+
 ## [2.0.0] - 2025-12-09
 
 ### 🎉 Major Release - Reverse Recovery & Line State Tracking

@@ -634,7 +634,7 @@ class Controller:
         print(f"Run mode: {dc.run_mode}")
         
         # Start line following task
-        line_follow_task = asyncio.create_task(self.mobility.auto_line_follow())
+        line_follow_task = asyncio.create_task(self.mobility.follow_line())
 
         # Start cargo monitoring task
         cargo_monitor_task = asyncio.create_task(
