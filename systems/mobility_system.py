@@ -56,7 +56,16 @@ class MotionController:
         # Line state tracking
         self.prev_left_in = False
         self.prev_right_in = False
-        self.line_state = "center"
+        # line_state is now in self.state.line_state
+        
+        # Reverse recovery: trigger reverse when stuck in left/right for too long
+        self.reverse_enabled = kwargs.get("reverse_enabled", True)  # Enable/disable reverse
+        self.reverse_speed = kwargs.get("reverse_speed", 10)  # Speed when reversing
+        self.stuck_intervals = 0  # Count of consecutive intervals in same state
+        self.stuck_threshold = kwargs.get("stuck_threshold", 10)  # Intervals before reverse
+        self.reversing = False  # Currently in reverse recovery
+        self.reverse_intervals_count = 0  # Count of intervals spent reversing
+        self.reverse_intervals = kwargs.get("reverse_intervals", 5)  # Intervals to reverse
 
     def start(self, speed=None):
         if speed is None:
@@ -301,30 +310,57 @@ class MotionController:
                 right_in = self.state.lf_right_value
                 turn_pos = self.turn_motor.get_position()
                 
+                # Check if in reverse recovery mode
+                if self.reversing:
+                    self.reverse_intervals_count += 1
+                    # Straighten wheels while reversing
+                    await self.straighten()
+                    # Check if we've reversed enough intervals
+                    if self.reverse_intervals_count >= self.reverse_intervals:
+                        # Done reversing, resume forward
+                        self.reversing = False
+                        self.stuck_intervals = 0
+                        self.reverse_intervals_count = 0
+                        self.front_motor.start(self.current_speed)
+                        print(f"Reverse recovery complete, resuming forward")
+                    await asyncio.sleep(self.line_follow_interval)
+                    continue
+                
                 if left_in and right_in:
                     if self.prev_left_in and not self.prev_right_in:
-                        self.line_state = "left"
+                        self.state.line_state = "left"
                     elif self.prev_right_in and not self.prev_left_in:
-                        self.line_state = "right"
+                        self.state.line_state = "right"
                 elif left_in:
                     if not self.prev_left_in and not self.prev_right_in:
-                        if self.line_state == "right":
-                            self.line_state = "center"
+                        if self.state.line_state == "right":
+                            self.state.line_state = "center"
                         else:
-                            self.line_state = "right"
+                            self.state.line_state = "right"
                     else:
-                        self.line_state = "right"
+                        self.state.line_state = "right"
                 elif right_in:
                     if not self.prev_left_in and not self.prev_right_in:
-                        if self.line_state == "left":
-                            self.line_state = "center"
+                        if self.state.line_state == "left":
+                            self.state.line_state = "center"
                         else:
-                            self.line_state = "left"
+                            self.state.line_state = "left"
                     else:
-                        self.line_state = "left"
+                        self.state.line_state = "left"
 
-                if self.line_state == "left":
+                if self.state.line_state == "left":
                     # Robot is to the left of the line - turn right
+                    self.stuck_intervals += 1
+                    
+                    # Check if stuck for too long (only if reverse is enabled)
+                    if self.reverse_enabled and not self.reversing and self.stuck_intervals >= self.stuck_threshold:
+                        print(f"Stuck in LEFT state for {self.stuck_intervals} intervals, reversing...")
+                        self.reversing = True
+                        self.reverse_intervals_count = 0
+                        self.front_motor.start(-self.reverse_speed)  # Reverse
+                        await asyncio.sleep(self.line_follow_interval)
+                        continue
+                    
                     if self.turn_mode == "fixed":
                         # Fixed mode: turn to max right position
                         await self.turn_right(self.max_turn)
@@ -333,8 +369,19 @@ class MotionController:
                         self.stop()
                         await self.turn_right(self.turn_amount)
                         self.start(self.current_speed)
-                elif self.line_state == "right":
+                elif self.state.line_state == "right":
                     # Robot is to the right of the line - turn left
+                    self.stuck_intervals += 1
+                    
+                    # Check if stuck for too long (only if reverse is enabled)
+                    if self.reverse_enabled and not self.reversing and self.stuck_intervals >= self.stuck_threshold:
+                        print(f"Stuck in RIGHT state for {self.stuck_intervals} intervals, reversing...")
+                        self.reversing = True
+                        self.reverse_intervals_count = 0
+                        self.front_motor.start(-self.reverse_speed)  # Reverse
+                        await asyncio.sleep(self.line_follow_interval)
+                        continue
+                    
                     if self.turn_mode == "fixed":
                         # Fixed mode: turn to max left position
                         await self.turn_left(self.max_turn)
@@ -345,6 +392,7 @@ class MotionController:
                         self.start(self.current_speed)
                 else:
                     # Neither sensor on line - straighten
+                    self.stuck_intervals = 0  # Reset counter when centered
                     await self.straighten()
 
                 self.prev_left_in = left_in

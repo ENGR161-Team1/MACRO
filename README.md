@@ -64,7 +64,7 @@ MACRO/
 
 ## Features
 
-### Controller (v1.2.0)
+### Controller (v2.0.0)
 - **Centralized Configuration**: All settings from `macro_config.toml`
 - **Shared State**: Single `State` dataclass across all systems
 - **Graceful Shutdown**: Proper cleanup on exit (straighten wheels, stop motors)
@@ -72,6 +72,7 @@ MACRO/
 - **Button Mobility Toggle**: Press button to enable/disable robot movement
 - **Run Modes**: Display mode (print state) or Control mode (interactive console)
 - **Override System**: Trigger straight/left/right overrides via keyboard (w/a/d)
+- **Reverse Recovery**: Automatic reverse when stuck in left/right state for too long
 
 ### Navigation System
 - **3D Position Tracking**: Dead reckoning with IMU integration

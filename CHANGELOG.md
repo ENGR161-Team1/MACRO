@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-12-09
+
+### 🎉 Major Release - Reverse Recovery & Line State Tracking
+
+### Added
+- **Reverse Recovery System**: Automatic reverse when stuck in left/right state
+  - `reverse_enabled` config - Enable/disable reverse recovery (default: true)
+  - `reverse_speed` config - Speed when reversing (default: 10)
+  - `stuck_threshold` config - Intervals in left/right state before triggering reverse
+  - `reverse_intervals` config - Number of intervals to reverse
+  - Robot straightens wheels while reversing, then resumes forward movement
+- **Line State Tracking**: Line state now stored in `State.line_state`
+  - Tracks "left", "center", "right" states for external monitoring
+- `reverse_speed` as configurable variable separate from `forward_speed_slow`
+
+### Changed
+- Line state tracking moved from `MotionController.line_state` to `State.line_state`
+- Turn functions (`turn_left`, `turn_right`) now clamp amount to max turn limit
+- Fixed mode line following now uses `turn_left(max_turn)` / `turn_right(max_turn)`
+
+### Fixed
+- Fixed typo in `turn_right()` - was printing "Turning left" instead of "Turning Right"
+- Reverse recovery now properly continues to next loop iteration after triggering
+
+---
+
 ## [1.2.0] - 2025-12-08
 
 ### Added

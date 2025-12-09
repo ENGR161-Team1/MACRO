@@ -93,6 +93,12 @@ class MobilityConfig:
     override: bool = False
     override_mode: str = "straight"  # Override behavior: "straight" = straighten and go
     override_distance: float = 6.0  # Distance in cm to travel before resuming line following
+    
+    # Reverse recovery - when stuck in left/right state for too long
+    reverse_enabled: bool = True  # Enable/disable reverse recovery
+    reverse_speed: int = 10  # Speed when reversing
+    stuck_threshold: int = 10  # Intervals before triggering reverse
+    reverse_intervals: int = 5  # Intervals to reverse
 
 
 @dataclass
@@ -256,6 +262,10 @@ def load_config(config_path: Optional[str] = None) -> Config:
             override=m.get("override", False),
             override_mode=m.get("override_mode", "straight"),
             override_distance=m.get("override_distance", 6.0),
+            reverse_enabled=m.get("line_follow", {}).get("reverse_enabled", True),
+            reverse_speed=m.get("line_follow", {}).get("reverse_speed", 10),
+            stuck_threshold=m.get("line_follow", {}).get("stuck_threshold", 10),
+            reverse_intervals=m.get("line_follow", {}).get("reverse_intervals", 5),
         )
     
     # Parse navigation section
@@ -391,6 +401,10 @@ class Controller:
             line_follow_interval=mc.line_follow_interval,
             override_mode=mc.override_mode,
             override_distance=mc.override_distance,
+            reverse_enabled=mc.reverse_enabled,
+            reverse_speed=mc.reverse_speed,
+            stuck_threshold=mc.stuck_threshold,
+            reverse_intervals=mc.reverse_intervals,
         )
         
         # Initialize navigation with shared state
@@ -593,7 +607,7 @@ class Controller:
             parts.append(f"Dist: {self.state.ultrasonic_distance:.1f} cm")
         
         if show_all or "line_finder" in fields:
-            parts.append(f"LF: L={self.state.lf_left_value:.0f} R={self.state.lf_right_value:.0f}")
+            parts.append(f"LF: L={self.state.lf_left_value:.0f} R={self.state.lf_right_value:.0f} State={self.state.line_state}")
         
         if show_all or "motor" in fields:
             parts.append(f"Motor: pos={self.state.motor_position:.1f}° vel={self.state.motor_velocity:.1f}°/s")

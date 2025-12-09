@@ -55,13 +55,13 @@ override_distance = 6.0     # Distance in cm to travel before resuming line foll
 
 [mobility.speed]
 # Speed settings (range: -100 to 100)
-forward = 20
+forward = 40
 forward_slow = 10
 turn = 20
 
 [mobility.turn]
 # Turn limits
-max_angle = 100  # Maximum turn angle from center in degrees
+max_angle = 120  # Maximum turn angle from center in degrees
 
 [mobility.safety]
 # Distance thresholds in centimeters
@@ -74,6 +74,10 @@ wheel_ratio = 9.0  # Ratio between wheel motor degrees and turn motor degrees
 turn_amount = 20  # Degrees to turn when correcting line position (dynamic mode)
 turn_mode = "fixed"  # "dynamic" = incremental turns, "fixed" = always turn to max
 update_interval = 0.2  # Seconds between line following updates
+reverse_enabled = true  # Enable/disable reverse recovery when stuck
+reverse_speed = 10  # Speed when reversing (range: 1-100)
+stuck_threshold = 10  # Intervals in left/right state before triggering reverse recovery
+reverse_intervals = 10  # Intervals to reverse when stuck
 
 # =============================================================================
 # NAVIGATION
