@@ -208,6 +208,7 @@ Mode (1/2):
 
 ## Running the Mobility System
 
-- The main line following routine is now `follow_line` (formerly `auto_line_follow`).
-- Line state is tracked independently by the `track_line` async loop.
-- Ensure your configuration in `macro_config.toml` matches your hardware setup.
+- The main line following routine is `follow_line` (formerly `auto_line_follow`).
+- Line state is tracked independently by the `track_line` async loop, which is started by `follow_line`.
+- Reverse recovery and override modes are configurable in `macro_config.toml` (`reverse_enabled`, `reverse_speed`, `stuck_threshold`, `reverse_intervals`, `override`, `override_mode`, `override_distance`).
+- Ensure your configuration in `macro_config.toml` matches your hardware setup and desired behavior.

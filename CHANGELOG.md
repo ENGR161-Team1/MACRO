@@ -8,16 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [2.1.0] - 2025-12-09
 
+
 ### Added
-- **`track_line` Function**: Introduced an independent loop for line tracking logic.
-  - Tracks `left_in` and `right_in` sensor values and updates `State.line_state`.
-- **`follow_line` Update**: Now starts the `track_line` function before entering its main loop.
+- **`track_line` Function**: Independent async loop for line tracking logic, updates `State.line_state` from line sensors using instance variables (`self.left_in`, `self.right_in`).
+- **`follow_line` Update**: Main async routine for line following (formerly `auto_line_follow`), starts `track_line` before entering its main loop, and handles override/reverse recovery modes.
 
 ### Changed
-- Renamed the `auto_line_follow` function to `follow_line` for clarity.
-- Updated all references to `auto_line_follow` to use the new `follow_line` name.
-- Refactored `auto_line_follow` to use instance variables `self.left_in` and `self.right_in` for consistency.
-- Removed redundant line tracking logic from `auto_line_follow` and delegated it to `track_line`.
+- Renamed the `auto_line_follow` function to `follow_line` for clarity and updated all references.
+- Refactored line following logic to use instance variables for sensor state.
+- Line tracking and following logic are now decoupled for clarity and maintainability.
+- Reverse recovery and override modes are now fully configurable via `macro_config.toml`.
 
 ---
 

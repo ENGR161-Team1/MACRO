@@ -149,7 +149,7 @@ async def main():
     
     # Run systems
     await asyncio.gather(
-        motion.auto_line_follow(),
+        motion.follow_line(),
         cargo.run_cargo_update_loop()
     )
 
@@ -221,10 +221,9 @@ asyncio.run(main())
 
 ### MotionController
 
-- `async follow_line()`
-  - Main async routine for line following. Starts `track_line` before entering the main loop.
-  - Handles obstacle avoidance, override modes, and reverse recovery.
-
-- `async track_line()`
-  - Independent async loop for updating `State.line_state` from line sensors.
+- - `async follow_line()`
+    - Main async routine for line following (formerly `auto_line_follow`). Starts `track_line` for independent line state tracking and handles override/reverse recovery modes.
+    - Handles obstacle avoidance, override modes, and reverse recovery (configurable).
+- - `async track_line()`
+    - Independent async loop for updating `State.line_state` from line sensors using instance variables (`self.left_in`, `self.right_in`).
   - Uses instance variables `self.left_in` and `self.right_in` for sensor state.

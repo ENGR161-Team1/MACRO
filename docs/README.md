@@ -143,6 +143,7 @@ MACRO/
 | Changelog | [../CHANGELOG.md](../CHANGELOG.md) |
 | Configuration | [../macro_config.toml](../macro_config.toml) |
 | License | [../LICENSE](../LICENSE) |
+| Diagrams | [Architecture FBD](architecture.md#function-block-diagram-fbd) • [Line Tracker](api/mobility.md#line-tracker-track_line) • [Line Finder](api/mobility.md#line-finder-sensor---diagram) |
 
 ---
 
@@ -150,7 +151,7 @@ MACRO/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 2.1.0 | 2025-12-09 | `track_line` async loop, `follow_line` refactor, instance variable line sensors |
+| 2.1.0 | 2025-12-09 | `follow_line` replaces `auto_line_follow`, starts `track_line` async loop, config-driven reverse recovery and override modes |
 | 2.0.0 | 2025-12-09 | Reverse recovery system, config-driven reverse, line state in State, refactor |
 | 1.2.0 | 2025-12-08 | Override mode, target cargo system, run mode toggle, control console |
 | 1.1.0 | 2025-12-08 | Mobility toggle, cargo bay state, line follow checks, config cleanup |

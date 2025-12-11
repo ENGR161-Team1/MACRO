@@ -65,7 +65,8 @@ await controller.run()
 ```
 
 **Behavior:**
-1. Starts line following task (`auto_line_follow()`)
+**Behavior:**
+1. Starts line following task (`follow_line()`)
 2. Starts cargo monitoring task (`run_cargo_update_loop()`)
 3. Runs navigation update loop
 4. Prints state if enabled

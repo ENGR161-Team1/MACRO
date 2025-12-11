@@ -83,8 +83,9 @@ MACRO/
 
 ### Mobility System
 - **Motor Control**: LEGO Technic motors via Build HAT
-- **Line Following**: `follow_line` async routine starts `track_line` for independent line state tracking
+- **Line Following**: `follow_line` async routine (formerly `auto_line_follow`) starts `track_line` for independent line state tracking and handles override/reverse recovery modes (configurable)
 - **track_line**: Async loop for updating line state from sensors using instance variables `self.left_in` and `self.right_in`
+- **Reverse Recovery & Override**: Reverse recovery and override modes are fully configurable via `macro_config.toml`
 - **Safety Ring**: Ultrasonic obstacle detection with slowdown/stop zones
 - **Async Operation**: Non-blocking motor and sensor updates
 - **Cargo Pause**: Automatically pauses during cargo deployment

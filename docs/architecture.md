@@ -219,7 +219,7 @@ MACRO uses Python's `asyncio` for concurrent operations.
 async def run(self):
     # Start concurrent tasks
     line_follow_task = asyncio.create_task(
-        self.mobility.auto_line_follow()
+        self.mobility.follow_line()
     )
     cargo_monitor_task = asyncio.create_task(
         self.cargo.run_cargo_update_loop()
@@ -325,6 +325,49 @@ class CargoConfig:
 ## Mobility System (v2.1.0)
 
 - **MotionController**
-  - `follow_line`: Main async routine for line following (formerly `auto_line_follow`). Starts `track_line` for independent line state tracking.
-  - `track_line`: Async loop for updating `State.line_state` from line sensors using instance variables (`self.left_in`, `self.right_in`).
-  - Modular design: Line tracking and following logic are now decoupled for clarity and maintainability.
+    - `follow_line`: Main async routine for line following (formerly `auto_line_follow`). Starts `track_line` for independent line state tracking and handles override/reverse recovery modes.
+    - `track_line`: Async loop for updating `State.line_state` from line sensors using instance variables (`self.left_in`, `self.right_in`).
+    - Modular design: Line tracking and following logic are now decoupled for clarity and maintainability.
+    - Reverse recovery: If stuck in left/right state for too long, triggers reverse (configurable).
+    - Override mode: Temporarily disables line following and applies override behavior for a set distance (configurable).
+
+    ### Function Block Diagram (FBD)
+    This simplified FBD shows how sensor data flows into the line tracking and motion control subsystems.
+
+    ```mermaid
+    flowchart LR
+        subgraph Sensors
+            A1[Left Line Finder]
+            A2[Right Line Finder]
+            A3[Ultrasonic]
+            A4[IMU]
+            A5[Button]
+        end
+
+        subgraph Perception
+            B1[Line Finder Processing]
+            B2[Distance Monitor]
+            B3[IMU Odometry]
+        end
+
+        subgraph LineTracking
+            C1[track_line]
+        end
+
+        subgraph Motion
+            D1[follow_line]
+            D2[MotionController - turn and drive]
+        end
+
+        A1 --> B1
+        A2 --> B1
+        B1 --> C1
+        A3 --> B2
+        B2 --> D1
+        A4 --> B3
+        B3 --> D1
+        A5 --> D1
+        C1 --> D1
+        D1 --> D2
+        D2 -->|drive| E[MOTORS]
+    ```
