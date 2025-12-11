@@ -331,43 +331,69 @@ class CargoConfig:
     - Reverse recovery: If stuck in left/right state for too long, triggers reverse (configurable).
     - Override mode: Temporarily disables line following and applies override behavior for a set distance (configurable).
 
-    ### Function Block Diagram (FBD)
-    This simplified FBD shows how sensor data flows into the line tracking and motion control subsystems.
+        ### Function Block Diagram (FBD)
+        The FBD below is arranged to match the Draw.io structure: sensor conditioning -> state update -> line tracker -> follow loop -> motion output. It also shows ultrasonic safety and cargo interactions.
 
-    ```mermaid
-    flowchart LR
-        subgraph Sensors
-            A1[Left Line Finder]
-            A2[Right Line Finder]
-            A3[Ultrasonic]
-            A4[IMU]
-            A5[Button]
-        end
+                ```mermaid
+                flowchart LR
+                    %% Full module FBD (sanitized labels to avoid parser issues)
 
-        subgraph Perception
-            B1[Line Finder Processing]
-            B2[Distance Monitor]
-            B3[IMU Odometry]
-        end
+                    %% Sensors
+                    LF[Left Line Finder]
+                    RF[Right Line Finder]
+                    US[Ultrasonic Sensor]
+                    IMU[IMU Sensor]
+                    BTN[Button]
+                    HALL[Hall Sensor]
 
-        subgraph LineTracking
-            C1[track_line]
-        end
+                    %% Conditioning and perception
+                    LF_PROC[Line sensor processing]
+                    US_PROC[Distance processing]
+                    IMU_PROC[IMU processing]
+                    HALL_PROC[Magnetic processing]
 
-        subgraph Motion
-            D1[follow_line]
-            D2[MotionController - turn and drive]
-        end
+                    %% Central state and tracking
+                    STATE[Central State Dataclass]
+                    TRACK[track_line loop]
 
-        A1 --> B1
-        A2 --> B1
-        B1 --> C1
-        A3 --> B2
-        B2 --> D1
-        A4 --> B3
-        B3 --> D1
-        A5 --> D1
-        C1 --> D1
-        D1 --> D2
-        D2 -->|drive| E[MOTORS]
-    ```
+                    %% Control and actuation
+                    FOLLOW[follow_line main loop]
+                    MOTCON[Motion Controller]
+                    MOTORS[Motors]
+                    CARGO[Cargo system]
+
+                    %% Connections
+                    LF --> LF_PROC
+                    RF --> LF_PROC
+                    LF_PROC --> STATE
+
+                    US --> US_PROC
+                    US_PROC --> STATE
+
+                    IMU --> IMU_PROC
+                    IMU_PROC --> STATE
+
+                    HALL --> HALL_PROC
+                    HALL_PROC --> STATE
+
+                    BTN --> STATE
+
+                    %% Line tracking feedback
+                    STATE --> TRACK
+                    TRACK --> STATE
+
+                    %% Control flow
+                    STATE --> FOLLOW
+                    FOLLOW --> MOTCON
+                    MOTCON --> MOTORS
+
+                    %% Cargo interaction
+                    STATE --> CARGO
+                    CARGO --> STATE
+                    CARGO --> FOLLOW
+
+                    %% Safety and odometry inputs to follow loop
+                    US_PROC --> FOLLOW
+                    IMU_PROC --> FOLLOW
+
+                ```
